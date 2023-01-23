@@ -1,8 +1,8 @@
 /*
 This file is part of the HemoCell library
 
-HemoCell is developed and maintained by the Computational Science Lab 
-in the University of Amsterdam. Any questions or remarks regarding this library 
+HemoCell is developed and maintained by the Computational Science Lab
+in the University of Amsterdam. Any questions or remarks regarding this library
 can be sent to: info@hemocell.eu
 
 When using the HemoCell library in scientific work please cite the
@@ -38,6 +38,7 @@ void HemoCellParticleField::AddOutputMap() {
   outputFunctionMap[OUTPUT_VERTEX_ID] = &HemoCellParticleField::outputVertexId;
   outputFunctionMap[OUTPUT_CELL_ID] = &HemoCellParticleField::outputCellId;
   outputFunctionMap[OUTPUT_FORCE_REPULSION] = &HemoCellParticleField::outputForceRepulsion;
+  outputFunctionMap[OUTPUT_FORCE_ADHESION] = &HemoCellParticleField::outputForceAdhesion;
   outputFunctionMap[OUTPUT_RES_TIME] = &HemoCellParticleField::outputResTime;
 
 }
@@ -152,7 +153,7 @@ void HemoCellParticleField::outputForceArea(Box3D domain,vector<vector<T>>& outp
     if (ctype != particles[particles_per_cell.at(cellid)[0]].sv.celltype) {continue;}
     for (pluint i = 0; i < particles_per_cell.at(cellid).size(); i++) {
       sparticle = &particles[particles_per_cell.at(cellid)[i]];
- 
+
       vector<T> tf;
       tf.push_back((*sparticle->force_area)[0]);
       tf.push_back((*sparticle->force_area)[1]);
@@ -181,7 +182,7 @@ void HemoCellParticleField::outputForceLink(Box3D domain,vector<vector<T>>& outp
     if (ctype != particles[particles_per_cell.at(cellid)[0]].sv.celltype) {continue;}
     for (pluint i = 0; i < particles_per_cell.at(cellid).size(); i++) {
       sparticle = &particles[particles_per_cell.at(cellid)[i]];
- 
+
       vector<T> tf;
       tf.push_back((*sparticle->force_link)[0]);
       tf.push_back((*sparticle->force_link)[1]);
@@ -210,7 +211,7 @@ void HemoCellParticleField::outputForceInnerLink(Box3D domain,vector<vector<T>>&
     if (ctype != particles[particles_per_cell.at(cellid)[0]].sv.celltype) {continue;}
     for (pluint i = 0; i < particles_per_cell.at(cellid).size(); i++) {
       sparticle = &particles[particles_per_cell.at(cellid)[i]];
- 
+
       vector<T> tf;
       tf.push_back((*sparticle->force_inner_link)[0]);
       tf.push_back((*sparticle->force_inner_link)[1]);
@@ -314,6 +315,35 @@ void HemoCellParticleField::outputForceRepulsion(Box3D domain,vector<vector<T>>&
   }
 }
 
+void HemoCellParticleField::outputForceAdhesion(Box3D domain,vector<vector<T>>& output, pluint ctype, std::string & name) {
+  name = "Adhesion force";
+  output.clear();
+  HemoCellParticle * sparticle;
+  const map<int,bool> & lpc = get_lpc();
+  const map<int,vector<int>> & particles_per_cell = get_particles_per_cell();
+  for ( const auto &lpc_it : lpc ) {
+    int cellid = lpc_it.first;
+    if (particles_per_cell.at(cellid)[0] == -1) { continue; }
+    if (ctype != particles[particles_per_cell.at(cellid)[0]].sv.celltype) {continue;}
+    for (pluint i = 0; i < particles_per_cell.at(cellid).size(); i++) {
+      sparticle = &particles[particles_per_cell.at(cellid)[i]];
+
+      vector<T> tf;
+      tf.push_back(sparticle->sv.force_adhesion[0]);
+      tf.push_back(sparticle->sv.force_adhesion[1]);
+      tf.push_back(sparticle->sv.force_adhesion[2]);
+      output.push_back(tf);
+    }
+  }
+  if(cellFields->hemocell.outputInSiUnits) {
+    for (vector<T> & tf : output) {
+      for (T & n : tf) {
+        n = n * param::df;
+      }
+    }
+  }
+}
+
 void HemoCellParticleField::outputForces(Box3D domain,vector<vector<T>>& output, pluint ctype, std::string & name) {
   name = "Total force";
   output.clear();
@@ -326,7 +356,7 @@ void HemoCellParticleField::outputForces(Box3D domain,vector<vector<T>>& output,
     if (ctype != particles[particles_per_cell.at(cellid)[0]].sv.celltype) {continue;}
     for (pluint i = 0; i < particles_per_cell.at(cellid).size(); i++) {
       sparticle = &particles[particles_per_cell.at(cellid)[i]];
- 
+
       vector<T> tf;
       tf.push_back(sparticle->force_total[0]);
       tf.push_back(sparticle->force_total[1]);
@@ -361,7 +391,7 @@ void HemoCellParticleField::outputTriangles(Box3D domain, vector<vector<plint>>&
     }
     counter += (*cellFields)[ctype]->numVertex;
   }
-   
+
 }
 
 void HemoCellParticleField::outputInnerLinks(Box3D domain,vector<vector<plint>>& output, pluint ctype, std::string & name) {

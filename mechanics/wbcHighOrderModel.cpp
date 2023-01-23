@@ -1,8 +1,8 @@
 /*
 This file is part of the HemoCell library
 
-HemoCell is developed and maintained by the Computational Science Lab 
-in the University of Amsterdam. Any questions or remarks regarding this library 
+HemoCell is developed and maintained by the Computational Science Lab
+in the University of Amsterdam. Any questions or remarks regarding this library
 can be sent to: info@hemocell.eu
 
 When using the HemoCell library in scientific work please cite the
@@ -29,8 +29,8 @@ namespace hemo {
 WbcHighOrderModel::WbcHighOrderModel(Config & modelCfg_, HemoCellField & cellField_) : CellMechanics(cellField_, modelCfg_),
                   cellField(cellField_),
                   k_volume( WbcHighOrderModel::calculate_kVolume(modelCfg_,*cellField_.meshmetric) ),
-                  k_area( WbcHighOrderModel::calculate_kArea(modelCfg_,*cellField_.meshmetric) ), 
-                  k_link( WbcHighOrderModel::calculate_kLink(modelCfg_,*cellField_.meshmetric) ), 
+                  k_area( WbcHighOrderModel::calculate_kArea(modelCfg_,*cellField_.meshmetric) ),
+                  k_link( WbcHighOrderModel::calculate_kLink(modelCfg_,*cellField_.meshmetric) ),
                   k_bend( WbcHighOrderModel::calculate_kBend(modelCfg_,*cellField_.meshmetric) ),
                   eta_m( WbcHighOrderModel::calculate_etaM(modelCfg_) ),
                   k_inner_rigid( WbcHighOrderModel::calculate_kInnerRigid(modelCfg_) ),
@@ -61,7 +61,7 @@ void WbcHighOrderModel::ParticleMechanics(map<int,vector<HemoCellParticle *>> & 
       const hemo::Array<T,3> & v0 = cell[triangle[0]]->sv.position;
       const hemo::Array<T,3> & v1 = cell[triangle[1]]->sv.position;
       const hemo::Array<T,3> & v2 = cell[triangle[2]]->sv.position;
-      
+
       //Volume
       const T v210 = v2[0]*v1[1]*v0[2];
       const T v120 = v1[0]*v2[1]*v0[2];
@@ -70,15 +70,15 @@ void WbcHighOrderModel::ParticleMechanics(map<int,vector<HemoCellParticle *>> & 
       const T v102 = v1[0]*v0[1]*v2[2];
       const T v012 = v0[0]*v1[1]*v2[2];
       volume += (-v210+v120+v201-v021-v102+v012); // the factor of 1/6 moved to after the summation -> saves a few flops
-      
+
       //Area
-      T area; 
+      T area;
       hemo::Array<T,3> t_normal;
       computeTriangleAreaAndUnitNormal(v0, v1, v2, area, t_normal);
 
       const T areaRatio = (area - /*cellConstants.area_mean_eq*/ cellConstants.triangle_area_eq_list[triangle_n])
-                               / /*cellConstants.area_mean_eq*/ cellConstants.triangle_area_eq_list[triangle_n];      
-       
+                               / /*cellConstants.area_mean_eq*/ cellConstants.triangle_area_eq_list[triangle_n];
+
       //area force magnitude
       const T afm = k_area * (areaRatio+areaRatio/std::fabs(MaxCellSurfaceAreaChange-areaRatio*areaRatio));
 
@@ -100,7 +100,7 @@ void WbcHighOrderModel::ParticleMechanics(map<int,vector<HemoCellParticle *>> & 
 
       triangle_n++;
     }
-    
+
     volume *= (1.0/6.0);
 
     //Volume
@@ -129,23 +129,23 @@ void WbcHighOrderModel::ParticleMechanics(map<int,vector<HemoCellParticle *>> & 
       const hemo::Array<T,3> vertexes_middle = vertexes_sum/cellConstants.vertex_n_vertexes[i];
 
       const hemo::Array<T,3> dev_vect = vertexes_middle - cell[i]->sv.position;
-      
-      
+
+
       // Get the local surface normal
       hemo::Array<T,3> patch_normal = {0.,0.,0.};
       for(unsigned int j = 0; j < cellConstants.vertex_n_vertexes[i]-1; j++) {
-        hemo::Array<T,3> triangle_normal = crossProduct(cell[cellConstants.vertex_vertexes[i][j]]->sv.position - cell[i]->sv.position, 
+        hemo::Array<T,3> triangle_normal = crossProduct(cell[cellConstants.vertex_vertexes[i][j]]->sv.position - cell[i]->sv.position,
                                                              cell[cellConstants.vertex_vertexes[i][j+1]]->sv.position - cell[i]->sv.position);
-        triangle_normal /= norm(triangle_normal);  
-        patch_normal += triangle_normal;                                                   
+        triangle_normal /= norm(triangle_normal);
+        patch_normal += triangle_normal;
       }
-      hemo::Array<T,3> triangle_normal = crossProduct(cell[cellConstants.vertex_vertexes[i][cellConstants.vertex_n_vertexes[i]-1]]->sv.position - cell[i]->sv.position, 
+      hemo::Array<T,3> triangle_normal = crossProduct(cell[cellConstants.vertex_vertexes[i][cellConstants.vertex_n_vertexes[i]-1]]->sv.position - cell[i]->sv.position,
                                                            cell[cellConstants.vertex_vertexes[i][0]]->sv.position - cell[i]->sv.position);
       triangle_normal /= norm(triangle_normal);
       patch_normal += triangle_normal;
- 
+
       patch_normal /= norm(patch_normal);
-              
+
       const T ndev = dot(patch_normal, dev_vect); // distance along patch normal
 
       const T dDev = (ndev - cellConstants.surface_patch_center_dist_eq_list[i] ) / cellConstants.edge_mean_eq; // Non-dimensional
@@ -154,12 +154,12 @@ void WbcHighOrderModel::ParticleMechanics(map<int,vector<HemoCellParticle *>> & 
       const hemo::Array<T,3> bending_force = k_bend * ( dDev + dDev/std::fabs(MaxCellBendingAngle-dDev*dDev)) * patch_normal;
 
       //Apply bending force
-      *cell[i]->force_bending += bending_force;        
-    
-      const hemo::Array<T,3> negative_bending_force = -bending_force/cellConstants.vertex_n_vertexes[i];          
+      *cell[i]->force_bending += bending_force;
+
+      const hemo::Array<T,3> negative_bending_force = -bending_force/cellConstants.vertex_n_vertexes[i];
       for (unsigned int j = 0 ; j < cellConstants.vertex_n_vertexes[i]; j++ ) {
        *cell[cellConstants.vertex_vertexes[i][j]]->force_bending += negative_bending_force;
-      }   
+      }
     }
 
     // Per-edge calculations
@@ -181,7 +181,7 @@ void WbcHighOrderModel::ParticleMechanics(map<int,vector<HemoCellParticle *>> & 
       *cell[edge[1]]->force_link -= force;
 
       // Membrane viscosity of bilipid layer
-      // F = eta * (dv/l) * l. 
+      // F = eta * (dv/l) * l.
       const hemo::Array<T,3> rel_vel = cell[edge[1]]->sv.v - cell[edge[0]]->sv.v;
       const hemo::Array<T,3> rel_vel_projection = dot(rel_vel, edge_uv) * edge_uv;
       hemo::Array<T,3> Fvisc_memb = eta_m * rel_vel_projection;
@@ -193,11 +193,11 @@ void WbcHighOrderModel::ParticleMechanics(map<int,vector<HemoCellParticle *>> & 
       }
 
       *cell[edge[0]]->force_visc += Fvisc_memb;
-      *cell[edge[1]]->force_visc -= Fvisc_memb; 
+      *cell[edge[1]]->force_visc -= Fvisc_memb;
 
       edge_n++;
     }
-    
+
     // Enforce rigid inner core size
     for (const hemo::Array<plint,2> & edge : cellConstants.inner_edge_list) {
       const hemo::Array<T,3> & p0 = cell[edge[0]]->sv.position;
@@ -221,20 +221,22 @@ void WbcHighOrderModel::ParticleMechanics(map<int,vector<HemoCellParticle *>> & 
         *cell[edge[1]]->force_inner_link += force;
       }
     }
-  } 
+  }
 };
 
 void WbcHighOrderModel::statistics() {
-    hlog << "(Cell-mechanics model) High Order model parameters for " << cellField.name << " cellfield" << std::endl; 
-    hlog << "\t k_link:   " << k_link << std::endl; 
-    hlog << "\t k_area:   " << k_area << std::endl; 
-    hlog << "\t k_bend: : " << k_bend << std::endl; 
+    hlog << "(Cell-mechanics model) High Order model parameters for " << cellField.name << " cellfield" << std::endl;
+    hlog << "\t k_link:   " << k_link << std::endl;
+    hlog << "\t k_area:   " << k_area << std::endl;
+    hlog << "\t k_bend: : " << k_bend << std::endl;
     hlog << "\t k_volume: " << k_volume << std::endl;
     hlog << "\t k_cytoskeleton: " << k_cytoskeleton<< std::endl;
     hlog << "\t k_inner_rigid: " << k_inner_rigid << std::endl;
     hlog << "\t eta_m:    " << eta_m << std::endl;
     hlog << "\t wbc_radius:    " << radius << std::endl;
     hlog << "\t core_radius:    " << core_radius << std::endl;
+    hlog << "\t mean_edge:" << cellConstants.edge_mean_eq << std::endl;
+    hlog << "\t N faces:  " << cellConstants.triangle_list.size() << std::endl;
 };
 
 

@@ -140,6 +140,7 @@ class HemoCell {
   //Sets the repulsion constant and cutoff distance, also enables repulsion
   bool repulsionEnabled = false;
   bool boundaryRepulsionEnabled = false;
+  bool boundaryAdhesionEnabled = false;
   void setRepulsion(T repulsionConstant, T repulsionCutoff);
 
   // Lees-Edwards boundary condition
@@ -150,7 +151,7 @@ class HemoCell {
   void setMaterialTimeScaleSeparation(string name, unsigned int separation);
   
   //Enable solidify mechanics of a celltype
-  void enableSolidifyMechanics(string name) {
+  void enableSoliAdhesiondifyMechanics(string name) {
     hlog << "(HemoCell) Enabling Solidify Mechanics for " << name << " mechanical model" << endl;
     (*cellfields)[name]->doSolidifyMechanics = true;
   }
@@ -167,7 +168,7 @@ class HemoCell {
   void setInteriorViscosityTimeScaleSeperation(unsigned int separation, unsigned int separation_entire_grid);
   
   //Enable Boundary particles and set the boundary particle constants
-  void enableBoundaryParticles(T boundaryRepulsionConstant, T boundaryRepulsionCutoff, unsigned int timestep = 1);
+  void enableBoundaryParticles(T boundaryRepulsionConstant, T boundaryRepulsionCutoff, T boundaryAdhesionConstant, T boundaryAdhesionCutoff, unsigned int timestep = 1);
   
   //Set the minimum distance of the particles of a type to the solid, must be called BEFORE loadparticles
   void setInitialMinimumDistanceFromSolid(string name, T distance);
