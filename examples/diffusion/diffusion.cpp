@@ -7,7 +7,7 @@
 // HemoCell but can be handy nonetheless
 #include <cellInfo.h>
 #include <fluidInfo.h>
-
+#include "pltSimpleModel.h"
 #include "palabos3D.h"
 #include "palabos3D.hh"
 
@@ -25,6 +25,7 @@ int main(int argc, char *argv[])
     // The first argument is the config.xml location, the second and third argument
     // are necessary as a passthrough for the Palabos initialization
     HemoCell hemocell(argv[1], argc, argv);
+    Config * cfg = hemocell.cfg;
 
     // Calculate and load in the lattice Boltzmann parameters from the config file
     // that will be used later on. Pretend that we are calculating the parameters
@@ -83,18 +84,24 @@ int main(int argc, char *argv[])
     // Only update the forces resulting from the mechanical deformation every X
     // timesteps, recalculating this is the most costly step and since our
     // timestep is so small it can be done intermittently
-    hemocell.setMaterialTimeScaleSeparation("RBC", 20);
-
+    hemocell.setMaterialTimeScaleSeparation("RBC", (*cfg)["ibm"]["stepMaterialEvery"].read<int>());
+    
+    //double check what this does
+    hemocell.setInitialMinimumDistanceFromSolid("RBC", 0.5); 
+    
     // Only update the integrated velocity (from the fluid field to the particles)
     // every X timesteps.
     hemocell.setParticleVelocityUpdateTimeScaleSeparation(5);
 
+    
+    hemocell.addCellType<PltSimpleModel>("PLT", ELLIPSOID_FROM_SPHERE);
+    hemocell.setMaterialTimeScaleSeparation("PLT", (*cfg)["ibm"]["stepMaterialEvery"].read<int>());
+
+    // hemocell.setParticleVelocityUpdateTimeScaleSeparation((*cfg)["ibm"]["stepParticleEvery"].read<int>());
     // Request outputs from the simulation, here we have requested all of the
     // possible outputs!
-    hemocell.setOutputs("RBC", {OUTPUT_POSITION, OUTPUT_TRIANGLES, OUTPUT_FORCE,
-                                OUTPUT_FORCE_VOLUME, OUTPUT_FORCE_BENDING, OUTPUT_FORCE_REPULSION,
-                                OUTPUT_FORCE_LINK, OUTPUT_FORCE_AREA, OUTPUT_FORCE_VISC,
-                                OUTPUT_INNER_LINKS, OUTPUT_CELL_ID, OUTPUT_VERTEX_ID});
+    vector<int> outputs = {OUTPUT_POSITION,OUTPUT_TRIANGLES,OUTPUT_FORCE,OUTPUT_FORCE_VOLUME,OUTPUT_FORCE_BENDING,OUTPUT_FORCE_LINK,OUTPUT_FORCE_AREA,OUTPUT_FORCE_VISC};
+    hemocell.setOutputs("RBC", outputs);
     hemocell.setFluidOutputs({OUTPUT_VELOCITY, OUTPUT_DENSITY, OUTPUT_FORCE,
                               OUTPUT_SHEAR_RATE, OUTPUT_STRAIN_RATE,
                               OUTPUT_SHEAR_STRESS, OUTPUT_BOUNDARY, OUTPUT_OMEGA,
