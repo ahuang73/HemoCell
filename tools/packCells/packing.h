@@ -79,6 +79,7 @@ class Packing {
   bool rndRotation = true;
 
   void init();
+  void init_cylinder();
   void iterate();
   void calc_forces();
   void calc_motion();
@@ -174,7 +175,7 @@ Packing::~Packing() {
 
 void Packing::execute() {
 	//cout << "execute begin" << endl;
-	init();
+	init_cylinder();
 	//cout << "init end" << endl;
 	calc_forces();
 	//cout << "calc_forces end" << endl;
@@ -277,7 +278,7 @@ void Packing::init() {
 	for (int is = 0; is < NumSpecies; is++) {
 		r = species[is]->getSize();
 		corr += species[is]->getNum();// * r[0]*r[1]*r[2];
-		if (r[0] > Rc_max) Rc_max = r[0];
+		if (r[0] > Rc_max) Rc_max = r[0]; //max length of rbc
 	}
 	Diam_dens /= corr;
 	DensityNominal = nomPackDens;
@@ -293,6 +294,86 @@ void Packing::init() {
 	for (int is = 0; is < NumSpecies; is++)
 		for (int ip = 0; ip < species[is]->getNum(); ip++)
 			particles[ipart++] = new Ellipsoid (species[is], Box);
+
+	Link_head = new int [No_cells];
+	Link_list = new int [NumParts];
+
+	ndim_x = 3 * No_cells_x - 1;
+	ndim_y = 3 * No_cells_y - 1;
+	ndim_z = 3 * No_cells_z - 1;
+
+	Ncell_bound_x = new int [ndim_x];
+	Ncell_bound_y = new int [ndim_y];
+	Ncell_bound_z = new int [ndim_z];
+
+	Pbc_x = new double [ndim_x];
+	Pbc_y = new double [ndim_y];
+	Pbc_z = new double [ndim_z];
+
+	imult = 1;
+	corr = -No_cells_x;
+	for (int i = 1; i < ndim_x; i++) {
+		Ncell_bound_x[i] = imult * No_cells_y * No_cells_z;
+		Pbc_x[i] = corr;
+		if (++imult >= No_cells_x) {
+			imult = 0;
+			corr += No_cells_x;
+		}
+	}
+	imult = 1;
+	corr = -No_cells_y;
+	for (int i = 1; i < ndim_y; i++) {
+		Ncell_bound_y[i] = imult * No_cells_z;
+		Pbc_y[i] = corr;
+		if (++imult >= No_cells_y) {
+			imult = 0;
+			corr += No_cells_y;
+		}
+	}
+	imult = 1;
+	corr = -No_cells_z;
+	for (int i = 1; i < ndim_z; i++) {
+		Ncell_bound_z[i] = imult;
+		Pbc_z[i] = corr;
+		if (++imult >= No_cells_z) {
+			imult = 0;
+			corr += No_cells_z;
+		}
+	}
+
+}
+
+void Packing::init_cylinder() {
+	int imult;
+	int ndim_x, ndim_y, ndim_z;
+	No_cells = No_cells_x * No_cells_y * No_cells_z;
+	Ncell_min = (No_cells_x < No_cells_y) ?  No_cells_x : No_cells_y;
+	Ncell_min = (No_cells_z < Ncell_min) ? No_cells_z : Ncell_min;
+	Box = vector3(No_cells_x, No_cells_y, No_cells_z);
+	Half = 0.5 * Box;
+	Diam_dens = No_cells / Sphere_vol;
+	double corr = 0;
+	vector3 r;
+	Rc_max = 0;
+	for (int is = 0; is < NumSpecies; is++) {
+		r = species[is]->getSize();
+		corr += species[is]->getNum();// * r[0]*r[1]*r[2];
+		if (r[0] > Rc_max) Rc_max = r[0]; //max length of rbc
+	}
+	Diam_dens /= corr;
+	DensityNominal = nomPackDens;
+	Douter0 = pow (Diam_dens * nomPackDens , 1./3.);
+	Douter = Douter0;
+	Relax = 0.5 * Douter / Ntau;
+	Douter2 = Douter * Douter;
+	double alpha = species[0]->getSize()[0];
+	if(Epsilon_rot > .1) Epsilon_rot = 50. / (alpha*alpha*alpha);
+
+	particles = new Ellipsoid*[NumParts];
+	int ipart = 0;
+	for (int is = 0; is < NumSpecies; is++)
+		for (int ip = 0; ip < species[is]->getNum(); ip++)
+			particles[ipart++] = new Ellipsoid (species[is], Box,  No_cells_z/2, No_cells_z/2, No_cells_z/2);
 
 	Link_head = new int [No_cells];
 	Link_list = new int [NumParts];
