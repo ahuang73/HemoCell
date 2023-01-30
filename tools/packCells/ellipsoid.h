@@ -68,20 +68,21 @@ protected:
 public:
 	Ellipsoid() {}
 	Ellipsoid(Species* k, vector3 box) : kind(k), q(vector3(0.0,0.0,0.0)) { pos.random().scale(box); }
-	Ellipsoid(Species* k, vector3 box, double ycirc, double radius )  : kind(k), q(vector3(0.0,0.0,0.0))
+	Ellipsoid(Species* k, vector3 box, double ycirc, double radiusCyl )  : kind(k), q(vector3(0.0,0.0,0.0))
 	{ 
 		pos.random().scale(box);
 		double iZ = get_pos()[2];
 		double iY = get_pos()[1];
 		double iX = get_pos()[0];
-		double amplitude = 25;
+		double amplitude = 100;
 		double L_constr = 150;
 		double x_start = 0;
 		
 		double nx = 300;
 		double ny = 76.5;
 		double nz = 51;
-		double xcirc = nz;
+		double xcirc = nz/2;
+		double radius = (nz-2)/2;
 		while( (iZ-xcirc)*(iZ-xcirc) + (iY-(amplitude*std::cos((2*iX*std::acos(-1))/L_constr)+amplitude+radius))*(iY-(amplitude*std::cos((2*iX*std::acos(-1))/L_constr)+amplitude+radius))>= radius*radius 
 		|| iX < x_start || iX > nx
 		){
