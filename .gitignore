@@ -33,3 +33,7 @@ settings.json
 # Common other ignore files (fuzzy searchers etc.)
 .ignore
 .rgignore
+
+.vscode/*
+
+tools/packCells/CMakeFiles/*
