@@ -1,8 +1,8 @@
 /*
 This file is part of the HemoCell library
 
-HemoCell is developed and maintained by the Computational Science Lab 
-in the University of Amsterdam. Any questions or remarks regarding this library 
+HemoCell is developed and maintained by the Computational Science Lab
+in the University of Amsterdam. Any questions or remarks regarding this library
 can be sent to: info@hemocell.eu
 
 When using the HemoCell library in scientific work please cite the
@@ -32,11 +32,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 namespace hemo {
-PltSimpleModel::PltSimpleModel(Config & modelCfg_, HemoCellField & cellField_) : CellMechanics(cellField_, modelCfg_), 
+PltSimpleModel::PltSimpleModel(Config & modelCfg_, HemoCellField & cellField_) : CellMechanics(cellField_, modelCfg_),
                   cellField(cellField_),
                   k_volume( PltSimpleModel::calculate_kVolume(modelCfg_,*cellField_.meshmetric) ),
-                  k_area( PltSimpleModel::calculate_kArea(modelCfg_,*cellField_.meshmetric) ), 
-                  k_link( PltSimpleModel::calculate_kLink(modelCfg_,*cellField_.meshmetric) ), 
+                  k_area( PltSimpleModel::calculate_kArea(modelCfg_,*cellField_.meshmetric) ),
+                  k_link( PltSimpleModel::calculate_kLink(modelCfg_,*cellField_.meshmetric) ),
                   k_bend( PltSimpleModel::calculate_kBend(modelCfg_,*cellField_.meshmetric) ),
                   eta_m( PltSimpleModel::calculate_etaM(modelCfg_))
   { };
@@ -53,14 +53,14 @@ void PltSimpleModel::ParticleMechanics(map<int,vector<HemoCellParticle *>> & par
     T volume = 0.0;
     int triangle_n = 0;
     vector<T> triangle_areas;
-    vector<hemo::Array<T,3>> triangle_normals; 
+    vector<hemo::Array<T,3>> triangle_normals;
 
     // Per-triangle calculations
     for (const hemo::Array<plint,3> & triangle : cellConstants.triangle_list) {
       const hemo::Array<T,3> & v0 = cell[triangle[0]]->sv.position;
       const hemo::Array<T,3> & v1 = cell[triangle[1]]->sv.position;
       const hemo::Array<T,3> & v2 = cell[triangle[2]]->sv.position;
-      
+
       //Volume
       const T v210 = v2[0]*v1[1]*v0[2];
       const T v120 = v1[0]*v2[1]*v0[2];
@@ -69,15 +69,15 @@ void PltSimpleModel::ParticleMechanics(map<int,vector<HemoCellParticle *>> & par
       const T v102 = v1[0]*v0[1]*v2[2];
       const T v012 = v0[0]*v1[1]*v2[2];
       volume += (-v210+v120+v201-v021-v102+v012);
-      
+
       //Area
-      T area; 
+      T area;
       hemo::Array<T,3> t_normal;
       computeTriangleAreaAndUnitNormal(v0, v1, v2, area, t_normal);
-      
+
       const T areaRatio = (area - /*cellConstants.area_mean_eq*/ cellConstants.triangle_area_eq_list[triangle_n])
-                               / /*cellConstants.area_mean_eq*/ cellConstants.triangle_area_eq_list[triangle_n];      
-       
+                               / /*cellConstants.area_mean_eq*/ cellConstants.triangle_area_eq_list[triangle_n];
+
       //area force magnitude
       const T afm = k_area * (areaRatio+areaRatio/std::fabs(MaxCellSurfaceAreaChange-areaRatio*areaRatio));
 
@@ -138,7 +138,7 @@ void PltSimpleModel::ParticleMechanics(map<int,vector<HemoCellParticle *>> & par
       *cell[edge[1]]->force_link -= force;
 
       // Membrane viscosity of bilipid layer
-      // F = eta * (dv/l) * l. 
+      // F = eta * (dv/l) * l.
       const hemo::Array<T,3> rel_vel = cell[edge[1]]->sv.v - cell[edge[0]]->sv.v;
       const hemo::Array<T,3> rel_vel_projection = dot(rel_vel, edge_uv) * edge_uv;
       hemo::Array<T,3> Fvisc_memb = eta_m * rel_vel_projection;
@@ -150,7 +150,7 @@ void PltSimpleModel::ParticleMechanics(map<int,vector<HemoCellParticle *>> & par
       }
 
       *cell[edge[0]]->force_visc += Fvisc_memb;
-      *cell[edge[1]]->force_visc -= Fvisc_memb; 
+      *cell[edge[1]]->force_visc -= Fvisc_memb;
 
 
       const plint b0 = cellConstants.edge_bending_triangles_list[edge_n][0];
@@ -159,7 +159,7 @@ void PltSimpleModel::ParticleMechanics(map<int,vector<HemoCellParticle *>> & par
       const hemo::Array<T,3> b00 = particles_per_cell[cid][cellField.triangle_list[b0][0]]->sv.position;
       const hemo::Array<T,3> b01 = particles_per_cell[cid][cellField.triangle_list[b0][1]]->sv.position;
       const hemo::Array<T,3> b02 = particles_per_cell[cid][cellField.triangle_list[b0][2]]->sv.position;
-      
+
       const hemo::Array<T,3> b10 = particles_per_cell[cid][cellField.triangle_list[b1][0]]->sv.position;
       const hemo::Array<T,3> b11 = particles_per_cell[cid][cellField.triangle_list[b1][1]]->sv.position;
       const hemo::Array<T,3> b12 = particles_per_cell[cid][cellField.triangle_list[b1][2]]->sv.position;
@@ -168,7 +168,7 @@ void PltSimpleModel::ParticleMechanics(map<int,vector<HemoCellParticle *>> & par
       const hemo::Array<T,3> V2 = computeTriangleNormal(b10,b11,b12, false);
 
       T angle = getAngleBetweenFaces(V1, V2, edge_uv);
-      
+
       //calculate resulting bending force
       const T angle_frac = angle - cellConstants.edge_angle_eq_list[edge_n];
 
@@ -196,15 +196,15 @@ void PltSimpleModel::ParticleMechanics(map<int,vector<HemoCellParticle *>> & par
       const hemo::Array<T,3> edge_uv = edge_v/edge_length;
       const T edge_frac = (edge_length-cellConstants.inner_edge_length_eq_list[inner_edge_n])/cellConstants.inner_edge_length_eq_list[inner_edge_n];
 
-      const T edge_force_scalar = k_link * 5.0 * edge_frac; // Keep the linear part only for stability  
-      
+      const T edge_force_scalar = k_link * 5.0 * edge_frac; // Keep the linear part only for stability
+
       const hemo::Array<T,3> force = edge_uv*edge_force_scalar;
       *cell[edge[0]]->force_inner_link += force;
       *cell[edge[1]]->force_inner_link -= force;
       inner_edge_n++;
     }
 
-  } 
+  }
 }
 
 #ifdef SOLIDIFY_MECHANICS
@@ -220,7 +220,7 @@ void PltSimpleModel::solidifyMechanics(const std::map<int,std::vector<int>>& ppc
       if (particles[particle].sv.celltype != ctype) { broken = true; break; }
     }
     if (broken) { continue; }
-    
+
     bool solidify = false;
     // Complete and Correct Type, do solidify mechanics:
     for (const int & particle : cell) {
@@ -234,7 +234,7 @@ void PltSimpleModel::solidifyMechanics(const std::map<int,std::vector<int>>& ppc
     // If it was tagged last round, solidify it now
     if (solidify) {
       hemo::OctreeStructCell octCell(3, 1, 30, cellConstants.triangle_list, particles, cell);
- 
+
       set<Array<plint,3>> innerNodes;
       octCell.findInnerNodes(fluid,particles,cell,innerNodes);
       for (const Array<plint,3> & node : innerNodes) {
@@ -243,20 +243,22 @@ void PltSimpleModel::solidifyMechanics(const std::map<int,std::vector<int>>& ppc
           bindingFieldHelper::get(*pf.cellFields).add(pf, {node[0],node[1],node[2]});
         }
       }
-     
+
       for (const int & particle : cell) {
         particles[particle].tag = 1; //tag for removal
       }
-    } 
+    }
   }
 }
 #endif
 
 void PltSimpleModel::statistics() {
     hlog << "(Cell-mechanics model) Reduced-model parameters for " << cellField.name << " cellfield" << std::endl;
-    hlog << "\t k_link:   " << k_link << std::endl; 
-    hlog << "\t k_bend: : " << k_bend << std::endl; 
-    hlog << "\t k_volume: " << k_volume << std::endl; 
+    hlog << "\t k_link:   " << k_link << std::endl;
+    hlog << "\t k_bend: : " << k_bend << std::endl;
+    hlog << "\t k_volume: " << k_volume << std::endl;
     hlog << "\t eta_m:      " << eta_m << std::endl;
+    hlog << "\t mean_edge:" << cellConstants.edge_mean_eq << std::endl;
+    hlog << "\t N faces:  " << cellConstants.triangle_list.size() << std::endl;
 };
 }

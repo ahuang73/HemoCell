@@ -72,9 +72,9 @@ void iniLatticeSquareCouette(plb::MultiBlockLattice3D<T,Descriptor>& lattice,
     boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, top );
     boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, bottom );
 
-    T vHalf = (nz-1)*shearRate*0.5;
-    setBoundaryVelocity(lattice, top, plb::Array<T,3>(-vHalf,0.0,0.0));
-    setBoundaryVelocity(lattice, bottom, plb::Array<T,3>(vHalf,0.0,0.0));
+    T vHalf = (nz-1)*shearRate*0.5*2;
+    setBoundaryVelocity(lattice, top, plb::Array<T,3>(vHalf,0.0,0.0));
+    setBoundaryVelocity(lattice, bottom, plb::Array<T,3>(0.0,0.0,0.0));
 
     // plb::Cell<double, plb::descriptors::ForcedD3Q19Descriptor> cell = lattice.get(0,0,0);
     // // plb::Dynamics<double, plb::descriptors::ForcedD3Q19Descriptor> cellDynamics = cell.getDynamics();

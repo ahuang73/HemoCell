@@ -1,0 +1,52 @@
+<?xml version="1.0" ?>
+<hemocell>
+
+<verbose>
+	<cellsDeletedInfo>1</cellsDeletedInfo> <!-- Give information about the location of deleted cells, this option impacts performance -->
+</verbose>
+
+<parameters>
+    <warmup> 1000 </warmup> <!-- Number of LBM iterations to prepare fluid field. -->
+    <outputDirectory>tmp_1</outputDirectory>
+    <logDirectory>log_1</logDirectory>
+</parameters>
+
+<ibm>
+    <stepMaterialEvery> 1 </stepMaterialEvery> <!-- Update particle material model after this many fluid time steps. -->
+    <stepParticleEvery> 1 </stepParticleEvery> <!-- Update particles position after this many fluid time steps. -->
+</ibm>
+
+<domain>
+    <shearrate> 350 </shearrate>   <!--Shear rate for the fluid domain. [s^-1] [25]. -->
+    <fluidEnvelope> 2 </fluidEnvelope>
+    <rhoP> 1000 </rhoP>   <!--Density of the surrounding fluid, Physical units [kg/m^3]-->
+    <nuP> 1.0e-6 </nuP>   <!-- Kinematic viscosity of blood plasma, physical units [m^2/s]-->
+    <dx> 0.625e-6 </dx> <!--Physical length of 1 Lattice Unit -->
+    <dt> -1 </dt> <!-- Time step for the LBM system. A negative value will set Tau=1 and calc. the corresponding time-step. -->
+    <refDir> 1 </refDir>   <!-- Used for resloution  setting and  Re calculation as well -->
+    <nx> 60 </nx>  <!-- Number of numerical cell in the reference direction -->
+    <ny> 36 </ny>  <!-- Number of numerical cell in the reference direction -->
+    <nz> 36 </nz>  <!-- Number of numerical cell in the reference direction -->
+    <blockSize> -1 </blockSize>
+    <!-- Number of atomic blocks along the given axis. Uncomment to use. Automatic if not given. -->
+    <!-- 
+    <mABx>64</mABx> 
+    <mABy>64</mABy> 
+    <mABz>64</mABz> 
+    -->
+    <kBT> 4.100531391e-21 </kBT> <!-- in SI, m2 kg s-2 (or J) for T=300 -->
+    <particleEnvelope> 25 </particleEnvelope>
+    <kRep> 2e-22 </kRep> <!-- Repulsion Constant -->
+    <RepCutoff> 0.7 </RepCutoff> <!-- RepulsionCutoff -->
+    <BRepCutoff> 0.55 </BRepCutoff> <!--1.25 Boundary Repulsion Cutoff [dont touch this number at all] 2 um-->
+    <BkRep>  2e-3 </BkRep> <!-- Boundary Repulsion Constant 1e-3 [it should be positive in the probabilistic model]-->
+    <BAdhCutoff> 1.3 </BAdhCutoff> <!--1.25 Boundary Adhesion Cutoff [dont touch this number at all] 2 um-->
+    <BkAdh>  1e-3 </BkAdh> <!-- Boundary Adhesion Constant 1e-3 [it should be positive in the probabilistic model]-->
+</domain>
+
+<sim>
+    <tmax> 900000 </tmax> <!-- total number of iterations -->
+    <tmeas> 1000 </tmeas> <!-- interval after which data is written -->
+</sim>
+
+</hemocell>

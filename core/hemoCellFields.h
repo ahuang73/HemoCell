@@ -126,6 +126,10 @@ public:
   /// Apply (and calculate) the repulsion force between particles and the boundary
   void applyBoundaryRepulsionForce();
   
+
+  /// Apply (and calculate) the adhesion force between particles and the boundary
+  void applyBoundaryAdhesionForce();
+  
   /// Delete any incomplete cells on a block
   void deleteIncompleteCells(bool verbose = true);
   
@@ -192,6 +196,13 @@ public:
   T boundaryRepulsionConstant = 0.0;
   ///Timescale seperation for boundary repulsion, set through hemocell.h
   pluint boundaryRepulsionTimescale = 1;
+  
+  ///Boundary adhesion variable set through hemocell.h
+  T boundaryAdhesionCutoff = 0.0;
+  ///Boundary adhesion variable set through hemocell.h
+  T boundaryAdhesionConstant = 0.0;
+  ///Timescale seperation for boundary adhesion, set through hemocell.h
+  pluint boundaryAdhesionTimescale = 1;
   
   ///Timescale seperation for the velocity interpolation from the fluid to the particle
   pluint particleVelocityUpdateTimescale = 1;
@@ -274,6 +285,19 @@ public:
    void processGenericBlocks(plb::Box3D, std::vector<plb::AtomicBlock3D*>);
    HemoBoundaryRepulsionForce * clone() const;
   };
+  
+
+  
+   class HemoBoundaryAdhesionForce: public HemoCellFunctional {
+   public:
+      HemoBoundaryAdhesionForce(HemoCell &hemocell_) : hemocell(hemocell_) {}
+   private:
+   void processGenericBlocks(plb::Box3D, std::vector<plb::AtomicBlock3D*>);
+   HemoBoundaryAdhesionForce * clone() const;
+
+   HemoCell & hemocell;
+  };
+  
   class HemoDeleteIncompleteCells: public HemoCellFunctional {
    void processGenericBlocks(plb::Box3D, std::vector<plb::AtomicBlock3D*>);
    HemoDeleteIncompleteCells * clone() const;

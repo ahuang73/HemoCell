@@ -47,6 +47,7 @@ public:
     hemo::Array<T,3> position;
     hemo::Array<T,3> force;
     hemo::Array<T,3> force_repulsion;
+    hemo::Array<T,3> force_adhesion;
 #if HEMOCELL_MATERIAL_INTEGRATION == 2
     hemo::Array<T,3> vPrevious;
 #endif
@@ -66,8 +67,10 @@ public:
 
   hemo::Array<T,3> force_total;
   plint tag;
-  #ifdef INTERIOR_VISCOSITY
   hemo::Array<T,3> normalDirection;
+  double trianglearea;
+  #ifdef INTERIOR_VISCOSITY
+  // hemo::Array<T,3> normalDirection;
   //Is vector, optimize with hemo::Array possible
   std::vector<hemo::Array<plint, 3>> kernelCoordinates;
   #endif
@@ -111,6 +114,7 @@ public:
     sv.position = position_;
     sv.force = {0.,0.,0.};
     sv.force_repulsion = {0.,0.,0.};
+    sv.force_adhesion = {0.,0.,0.};
     sv.cellId = cellId_;
     sv.vertexId = vertexId_;
     sv.celltype=celltype_;
