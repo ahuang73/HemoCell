@@ -74,8 +74,8 @@ public:
 		double iZ = get_pos()[2];
 		double iY = get_pos()[1];
 		double iX = get_pos()[0];
-		double refDirN = (100/2)*Sizing; //divide by 2 for lu to um
-		double amplitude = (refDirN/2);
+		double refDirN = (100/2); //divide by 2 for lu to um
+		double amplitude = (refDirN)/2;
 		double Cfactor = 2;
 
 		double L_constr = 3*refDirN;
@@ -88,10 +88,8 @@ public:
 		double xcirc = ((nz)/2); //0.5 for the padding around vessel?
 		double radius = (nz-Cfactor);
 
-		while( (iZ-xcirc)*(iZ-xcirc) + (iY-(amplitude*std::cos((2*iX*std::acos(-1))/L_constr)+amplitude+radius))*(iY-(amplitude*std::cos((2*iX*std::acos(-1))/L_constr)+amplitude+radius))>= radius*radius 
-		|| iX < 0 || iX>nx
-		
-		){
+		while( (iZ/Sizing-xcirc)*(iZ/Sizing-xcirc) + (iY/Sizing-(amplitude*std::cos((2*(iX/Sizing)*std::acos(-1))/L_constr)+amplitude+radius))*(iY/Sizing-(amplitude*std::cos((2*(iX/Sizing)*std::acos(-1))/L_constr)+amplitude+radius))>= radius*radius 
+		|| iX/Sizing < 0 || iX/Sizing>=nx){
 			pos.random().scale(box);
 			iZ = get_pos()[2];
 			iY = get_pos()[1];
