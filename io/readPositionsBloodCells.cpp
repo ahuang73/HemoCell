@@ -349,7 +349,9 @@ void ReadPositionsBloodCellField3D::processGenericBlocks (
 
     // Change positions to match dx (it is in um originally)
     T wallWidth = 0; // BB wall in [lu]. Offset to count in width of the wall in particle position (useful for pipeflow, not necessarily useful elswhere)
-    std::vector<std::map<int, int>> m(cellFields.size());
+
+    std::map<int, int> cellidtype;
+    std::vector<plint> cellSizes(cellFields.size());
     for (pluint iCF = 0; iCF < positions.size(); ++iCF)
     {
         for (pluint c = 0; c < positions[iCF].size(); ++c)
@@ -367,44 +369,47 @@ void ReadPositionsBloodCellField3D::processGenericBlocks (
         std::vector<HemoCellParticle*> particles;
         
         particleFields[iCF]->findParticles(particleFields[iCF]->getBoundingBox(), particles, iCF);
-        for(pluint i = 0; i<particles.size(); i++)
+
+        for (pluint j = 0; j < particles.size(); j++)
         {
-            // for(pluint j = 0; j<positions[iCF].size(); j++)
-            // {
-            //     hemo::Array<T,3> pos = particles[i]->sv.position;
-            //     if(pos[0] == positions[iCF][j][0] || pos[1] == positions[iCF][j][1] ||  pos[2] == positions[iCF][j][2]){
-            //         cellsFile << pos[0] << " " << pos[1] << " " << pos[2] << " " 
-            //         << randomAngles[iCF][j][0] << " "<< randomAngles[iCF][j][1] << " "<< randomAngles[iCF][j][2] <<std::endl;
-            //     }
-            // }
-            int a = particles[i]->sv.cellId;
-            
-          
-            if(m[iCF].find(a) == m[iCF].end()){
-                m[iCF].insert(std::pair<int,int>(a,1));
-                
+            int cellType = particles[j]->sv.celltype;
+            int cellId = particles[j]->sv.cellId;
+ 
+            if (cellidtype.find(cellId) == cellidtype.end())
+            {
+              cellSizes[cellType]++;
+
+              cellidtype.insert(std::pair<int, int>(cellId, cellType));
             }
         }
-        
-        
         delete meshes[iCF];
     }
 
-    cout << "Atomic Block ID: " << particleFields[0]->atomicBlockId;
-    cout << " Total complete cells (with periodicity): " << particleFields[0]->get_lpc().size() << std::endl;
-    for (int i = 0; i < cellFields.size(); i++)
+    for(int i = 0; i<particleFields.size(); i++)
     {
-        ifstream oldposfile("RBC.pos");
-        ofstream newposfile("RBC_remaining.pos");
-        std::map<int, bool> map = particleFields[0]->get_lpc();
-        newposfile << particleFields[0]->get_lpc().size() << std::endl;
-        for (int i = 0; oldposfile; i++)
+        cout << "Atomic Block ID: " << particleFields[i]->atomicBlockId;
+        cout << " Total complete cells (with periodicity): " << particleFields[i]->get_lpc().size() << std::endl;
+    }
+
+
+
+    std::map<int, bool> map = particleFields[0]->get_lpc();
+
+    
+
+    for (plint a = 0; a < cellFields.size(); a++)
+    {
+        ifstream oldposfile(cellFields[a]->name + ".pos");
+        ofstream newposfile(cellFields[a]->name +"_remaining.pos");
+        newposfile << cellSizes[a] << std::endl;
+        for (plint i = 0; oldposfile; i++)
         {
             std::string line;
             std::getline(oldposfile, line);
-            if (map[i - 1] == true)
+            int typeSize = 0;
+            typeSize = (a>0)? cellSizes[a-1] : 0;
+            if (cellidtype[i-1+typeSize] == a && map[i-1+typeSize])
             {
-
                 newposfile << line << std::endl;
             }
         }
