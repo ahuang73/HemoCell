@@ -70,13 +70,8 @@ int main(int argc, char *argv[])
     hemocell.lattice->toggleInternalStatistics(false);
     // Equilibrate everything
     hemocell.latticeEquilibrium(1., plb::Array<double, 3>(0., 0., 0.));
-    Box3D source (27,35,27,35,27,27);
-    OnLatticeAdvectionDiffusionBoundaryCondition3D<T,CEPAC_DESCRIPTOR>* diffusionBoundary = createLocalAdvectionDiffusionBoundaryCondition3D<T, CEPAC_DESCRIPTOR>();
-    plb::initializeAtEquilibrium(*hemocell.cellfields->CEPACfield, (*hemocell.cellfields->CEPACfield).getBoundingBox(), 0.0, {0.0,0.0,0.0});
-    // Finalize everything
-    std::cout<<"TEST 0"<<std::endl;
-    diffusionBoundary->addTemperatureBoundary2N(source,*hemocell.cellfields->CEPACfield);
-    plb::setBoundaryDensity(*hemocell.cellfields->CEPACfield,source,0.05);
+    Box3D source (1,35,27,35,27,27);
+   
     
 
     // After we set up the fluid, it is time to set up the particles in the
@@ -119,7 +114,13 @@ int main(int argc, char *argv[])
                               OUTPUT_CELL_DENSITY});
 
     hemocell.setCEPACOutputs({OUTPUT_DENSITY});
-
+    
+    plb::initializeAtEquilibrium(*hemocell.cellfields->CEPACfield, (*hemocell.cellfields->CEPACfield).getBoundingBox(), 0.0, {0.0,0.0,0.0});
+    // Finalize everything
+    std::cout<<"TEST 0"<<std::endl;
+    OnLatticeAdvectionDiffusionBoundaryCondition3D<T,CEPAC_DESCRIPTOR>* diffusionBoundary = createLocalAdvectionDiffusionBoundaryCondition3D<T, CEPAC_DESCRIPTOR>();
+    diffusionBoundary->addTemperatureBoundary2N(source,*hemocell.cellfields->CEPACfield);
+    plb::setBoundaryDensity(*hemocell.cellfields->CEPACfield,source,0.05);
     std::cout<<"TEST 3"<<std::endl;
     hemocell.lattice->initialize();
     hemocell.cellfields->CEPACfield->initialize();
