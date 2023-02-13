@@ -8,6 +8,8 @@
 #include <cellInfo.h>
 #include <fluidInfo.h>
 #include "pltSimpleModel.h"
+#include "particleInfo.h"
+#include <fenv.h>
 #include "palabos3D.h"
 #include "palabos3D.hh"
 
@@ -57,7 +59,9 @@ int main(int argc, char *argv[])
     Box3D bottomChannel(0, 49, 0, 49, 0, 0);
     Box3D backChannel(0, 49, 49, 49, 0, 49);
     Box3D frontChannel(0, 49, 0, 0, 0, 49);
-
+    
+  
+    
     defineDynamics(*hemocell.lattice, topChannel, new BounceBack<T, DESCRIPTOR>);
     defineDynamics(*hemocell.lattice, bottomChannel, new BounceBack<T, DESCRIPTOR>);
     defineDynamics(*hemocell.lattice, backChannel, new BounceBack<T, DESCRIPTOR>);
@@ -66,13 +70,20 @@ int main(int argc, char *argv[])
     hemocell.lattice->toggleInternalStatistics(false);
     // Equilibrate everything
     hemocell.latticeEquilibrium(1., plb::Array<double, 3>(0., 0., 0.));
+    Box3D source (27,35,27,35,27,27);
+    OnLatticeAdvectionDiffusionBoundaryCondition3D<T,CEPAC_DESCRIPTOR>* diffusionBoundary = createLocalAdvectionDiffusionBoundaryCondition3D<T, CEPAC_DESCRIPTOR>();
+    plb::initializeAtEquilibrium(*hemocell.cellfields->CEPACfield, (*hemocell.cellfields->CEPACfield).getBoundingBox(), 0.0, {0.0,0.0,0.0});
     // Finalize everything
-    hemocell.lattice->initialize();
+    std::cout<<"TEST 0"<<std::endl;
+    diffusionBoundary->addTemperatureBoundary2N(source,*hemocell.cellfields->CEPACfield);
+    plb::setBoundaryDensity(*hemocell.cellfields->CEPACfield,source,0.05);
+    
 
     // After we set up the fluid, it is time to set up the particles in the
     // simulation
+    std::cout<<"TEST 1"<<std::endl;
     hemocell.initializeCellfield();
-
+    std::cout<<"TEST 2"<<std::endl;
     // Add a particleType to the simulation, the template argument refers to the
     // corresponding mechanics in the mechanics/ folder
     // The first argument must correspond with the CELL.xml and CELL.pos present in
@@ -107,6 +118,12 @@ int main(int argc, char *argv[])
                               OUTPUT_SHEAR_STRESS, OUTPUT_BOUNDARY, OUTPUT_OMEGA,
                               OUTPUT_CELL_DENSITY});
 
+    hemocell.setCEPACOutputs({OUTPUT_DENSITY});
+
+    std::cout<<"TEST 3"<<std::endl;
+    hemocell.lattice->initialize();
+    hemocell.cellfields->CEPACfield->initialize();
+    std::cout<<"TEST 4"<<std::endl;
     // Turn on periodicity in the X direction
     hemocell.setSystemPeriodicity(0, true);
 
