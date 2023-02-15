@@ -32,7 +32,9 @@ int main(int argc, char *argv[])
     // Calculate and load in the lattice Boltzmann parameters from the config file
     // that will be used later on. Pretend that we are calculating the parameters
     // for a pipe, to get an acceptable maximum velocity.
-    param::lbm_pipe_parameters((*hemocell.cfg), 50);
+
+    int refDirN = (*cfg)["domain"]["refDirN"].read<int>();
+    param::lbm_pipe_parameters((*hemocell.cfg), refDirN);
     // Also print the parameters so we have visual confirmation.
     param::printParameters();
 
@@ -45,20 +47,24 @@ int main(int argc, char *argv[])
     // The first three arguments are the number of fluid cells in x,y and z
     // direction, so this is a 50x50x50 block, the fourth argument is the fluid
     // envelope size and must be two
-    MultiBlockManagement3D management = defaultMultiBlockPolicy3D().getMultiBlockManagement(50, 50, 50, 2);
 
     // Initialize the fluid lattice within hemocell
-    hemocell.initializeLattice(management);
+    hemocell.lattice = new MultiBlockLattice3D<T, DESCRIPTOR>(
+        defaultMultiBlockPolicy3D().getMultiBlockManagement(refDirN, refDirN, refDirN, (*cfg)["domain"]["fluidEnvelope"].read<int>()),
+        defaultMultiBlockPolicy3D().getBlockCommunicator(),
+        defaultMultiBlockPolicy3D().getCombinedStatistics(),
+        defaultMultiBlockPolicy3D().getMultiCellAccess<T, DESCRIPTOR>(),
+        new GuoExternalForceBGKdynamics<T, DESCRIPTOR>(1.0 / param::tau));
 
     // Just to be sure disable all periodicity. Afterwards enable it in the
     // x-direction
     hemocell.lattice->periodicity().toggleAll(false);
     hemocell.lattice->periodicity().toggle(0, true);
     // Set up bounceback boundaries in the other directions
-    Box3D topChannel(0, 49, 0, 49, 49, 49);
-    Box3D bottomChannel(0, 49, 0, 49, 0, 0);
-    Box3D backChannel(0, 49, 49, 49, 0, 49);
-    Box3D frontChannel(0, 49, 0, 0, 0, 49);
+    Box3D topChannel(0, refDirN - 1, 0, refDirN - 1, refDirN - 1, refDirN - 1);
+    Box3D bottomChannel(0, refDirN - 1, 0, refDirN - 1, 0, 0);
+    Box3D backChannel(0, refDirN - 1, refDirN - 1, refDirN - 1, 0, refDirN - 1);
+    Box3D frontChannel(0, refDirN - 1, 0, 0, 0, refDirN - 1);
     
   
     
@@ -70,15 +76,15 @@ int main(int argc, char *argv[])
     hemocell.lattice->toggleInternalStatistics(false);
     // Equilibrate everything
     hemocell.latticeEquilibrium(1., plb::Array<double, 3>(0., 0., 0.));
-    Box3D source (1,35,27,35,27,27);
+    Box3D source (27,35,27,35,27,27);
    
     
 
     // After we set up the fluid, it is time to set up the particles in the
     // simulation
-    std::cout<<"TEST 1"<<std::endl;
+
     hemocell.initializeCellfield();
-    std::cout<<"TEST 2"<<std::endl;
+
     // Add a particleType to the simulation, the template argument refers to the
     // corresponding mechanics in the mechanics/ folder
     // The first argument must correspond with the CELL.xml and CELL.pos present in
@@ -108,23 +114,31 @@ int main(int argc, char *argv[])
     // possible outputs!
     vector<int> outputs = {OUTPUT_POSITION,OUTPUT_TRIANGLES,OUTPUT_FORCE,OUTPUT_FORCE_VOLUME,OUTPUT_FORCE_BENDING,OUTPUT_FORCE_LINK,OUTPUT_FORCE_AREA,OUTPUT_FORCE_VISC};
     hemocell.setOutputs("RBC", outputs);
+    hemocell.setOutputs("PLT", outputs);
     hemocell.setFluidOutputs({OUTPUT_VELOCITY, OUTPUT_DENSITY, OUTPUT_FORCE,
                               OUTPUT_SHEAR_RATE, OUTPUT_STRAIN_RATE,
-                              OUTPUT_SHEAR_STRESS, OUTPUT_BOUNDARY, OUTPUT_OMEGA,
-                              OUTPUT_CELL_DENSITY});
+                              OUTPUT_SHEAR_STRESS});
 
     hemocell.setCEPACOutputs({OUTPUT_DENSITY});
-    
+
     plb::initializeAtEquilibrium(*hemocell.cellfields->CEPACfield, (*hemocell.cellfields->CEPACfield).getBoundingBox(), 0.0, {0.0,0.0,0.0});
     // Finalize everything
-    std::cout<<"TEST 0"<<std::endl;
     OnLatticeAdvectionDiffusionBoundaryCondition3D<T,CEPAC_DESCRIPTOR>* diffusionBoundary = createLocalAdvectionDiffusionBoundaryCondition3D<T, CEPAC_DESCRIPTOR>();
     diffusionBoundary->addTemperatureBoundary2N(source,*hemocell.cellfields->CEPACfield);
+    Dynamics<T, CEPAC_DESCRIPTOR> * diffusionDynamics = 0;
+    diffusionDynamics = new AdvectionDiffusionBGKdynamics<T, CEPAC_DESCRIPTOR>(0.09);
+    MultiBlockManagement3D management = defaultMultiBlockPolicy3D().getMultiBlockManagement(10, 10, 10, 2);
     plb::setBoundaryDensity(*hemocell.cellfields->CEPACfield,source,0.05);
-    std::cout<<"TEST 3"<<std::endl;
+    *hemocell.cellfields->sourceLattice = generateMultiBlockLattice<T, CEPAC_DESCRIPTOR>(management,diffusionDynamics).release();
+    integrateProcessingFunctional(
+        new LatticeToPassiveAdvDiff3D<T,DESCRIPTOR,CEPAC_DESCRIPTOR>((T) 1.),
+        hemocell.lattice->getBoundingBox(), *hemocell.lattice, *hemocell.cellfields->sourceLattice, 1);
+    
+   
+    
     hemocell.lattice->initialize();
     hemocell.cellfields->CEPACfield->initialize();
-    std::cout<<"TEST 4"<<std::endl;
+    hemocell.cellfields->sourceLattice->initialize();
     // Turn on periodicity in the X direction
     hemocell.setSystemPeriodicity(0, true);
 
