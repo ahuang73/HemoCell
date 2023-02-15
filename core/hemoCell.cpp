@@ -164,6 +164,12 @@ void HemoCell::setCEPACOutputs(vector<int> outputs) {
   cellfields->desiredCEPACfieldOutputVariables = outputs_c;
 }
 
+void HemoCell::setSourceOutputs(vector<int> outputs) {
+  hlog << "(HemoCell) (Fluid) Setting CEPAC output variables for fluid field" << endl;
+  vector<int> outputs_c = outputs;
+  cellfields->desiredSourceFieldOutputVariables = outputs_c;
+}
+
 
 void HemoCell::setSystemPeriodicity(unsigned int axis, bool bePeriodic) {
   if (lattice == 0) {

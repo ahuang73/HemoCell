@@ -114,6 +114,7 @@ public:
     void outputForceLink   (plb::Box3D,vector<vector<T>>&, pluint, std::string&);
     void outputForceVisc    (plb::Box3D,vector<vector<T>>&, pluint, std::string&);
     void outputForceRepulsion  (plb::Box3D,vector<vector<T>>&, pluint, std::string&);
+    void outputConcentration  (plb::Box3D,vector<vector<T>>&, pluint, std::string&);
     
     void outputTriangles   (plb::Box3D,vector<vector<plint>>&, pluint, std::string&);
     void outputInnerLinks   (plb::Box3D,vector<vector<plint>>&, pluint, std::string&);

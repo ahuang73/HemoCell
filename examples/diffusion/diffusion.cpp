@@ -125,14 +125,10 @@ int main(int argc, char *argv[])
     // Finalize everything
     OnLatticeAdvectionDiffusionBoundaryCondition3D<T,CEPAC_DESCRIPTOR>* diffusionBoundary = createLocalAdvectionDiffusionBoundaryCondition3D<T, CEPAC_DESCRIPTOR>();
     diffusionBoundary->addTemperatureBoundary2N(source,*hemocell.cellfields->CEPACfield);
-    Dynamics<T, CEPAC_DESCRIPTOR> * diffusionDynamics = 0;
-    diffusionDynamics = new AdvectionDiffusionBGKdynamics<T, CEPAC_DESCRIPTOR>(0.09);
+    Dynamics<T, CEPAC_DESCRIPTOR> * diffusionDynamics = new AdvectionDiffusionBGKdynamics<T, CEPAC_DESCRIPTOR>(0.09);
     MultiBlockManagement3D management = defaultMultiBlockPolicy3D().getMultiBlockManagement(10, 10, 10, 2);
     plb::setBoundaryDensity(*hemocell.cellfields->CEPACfield,source,0.05);
-    *hemocell.cellfields->sourceLattice = generateMultiBlockLattice<T, CEPAC_DESCRIPTOR>(management,diffusionDynamics).release();
-    integrateProcessingFunctional(
-        new LatticeToPassiveAdvDiff3D<T,DESCRIPTOR,CEPAC_DESCRIPTOR>((T) 1.),
-        hemocell.lattice->getBoundingBox(), *hemocell.lattice, *hemocell.cellfields->sourceLattice, 1);
+    hemocell.cellfields->createSourceField();
     
    
     

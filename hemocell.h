@@ -177,6 +177,9 @@ class HemoCell {
   
   //Set the output of the CEPAC field
   void setCEPACOutputs(vector<int> outputs);
+
+  //Set the output of the CEPAC field
+  void setSourceOutputs(vector<int> outputs);
   
   //Explicitly set the periodicity of the domain along the different axes
   void setSystemPeriodicity(unsigned int axis, bool bePeriodic);
@@ -232,7 +235,7 @@ public:
   LoadBalancer * loadBalancer = 0;
   ///The fluid lattice
   MultiBlockLattice3D<T, DESCRIPTOR> * lattice = 0, *preinlet_lattice = 0, * domain_lattice = 0;
-  
+
   MultiBlockManagement3D * preinlet_lattice_management = 0, * domain_lattice_management = 0;
   
   Config * cfg = 0;

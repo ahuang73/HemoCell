@@ -63,6 +63,8 @@ public:
   void createParticleField(plb::SparseBlockStructure3D* sbStructure_ = 0, plb::ThreadAttribution * tAttribution_ = 0);
   
   void createCEPACfield();
+
+  void createSourceField();
   
   ///Used to set variables inside the celltypes for correct access, called through createParticleField
   void InitAfterLoadCheckpoint();
@@ -165,6 +167,8 @@ public:
   vector<int> desiredFluidOutputVariables;
   
   vector<int> desiredCEPACfieldOutputVariables;
+
+  vector<int> desiredSourceFieldOutputVariables;
   ///Reference to parent
   HemoCell & hemocell;
   ///Vector containing the cellTypes
@@ -178,6 +182,9 @@ public:
 
   /// palabos field for storing the CPAC scalar field if used
   plb::MultiBlockLattice3D<T,CEPAC_DESCRIPTOR> * CEPACfield = 0; 
+
+  // palabos field for source for diffusion
+  plb::MultiBlockLattice3D<T, CEPAC_DESCRIPTOR> *sourceLattice = 0;
 
   ///Repulsion variable set through hemocell.h
   T repulsionCutoff = 0.0;

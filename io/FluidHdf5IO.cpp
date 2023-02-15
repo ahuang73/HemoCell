@@ -58,8 +58,8 @@ void writeFluidField_HDF5(HemoCellFields& cellfields, T dx, T dt, plint iter, st
           DESCRIPTOR<T>::ExternalField::forceBeginsAt,
           plb::Array<T, DESCRIPTOR<T>::d>(0.0, 0.0, 0.0));
   }
-  
   global.statistics.getCurrent().stop();
+  
 }
 
 }
