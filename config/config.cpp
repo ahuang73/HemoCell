@@ -183,6 +183,9 @@ void loadGlobalConfigValues(hemo::Config * cfg) {
    global.enableCEPACfield = (*cfg)["parameters"]["enableCEPACfield"].read<int>();
   } catch(std::invalid_argument & e) {}
   try {
+   global.enableSource = (*cfg)["parameters"]["enableSource"].read<int>();
+  } catch(std::invalid_argument & e) {}
+  try {
    global.enableSolidifyMechanics = (*cfg)["parameters"]["enableSolidifyMechanics"].read<int>();
 #ifndef SOLIDIFY_MECHANICS
    if (global.enableSolidifyMechanics) {

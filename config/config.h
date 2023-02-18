@@ -82,6 +82,8 @@ struct ConfigValues {
 
   bool enableCEPACfield = false;
 
+  bool enableSource = false;
+
   bool enableSolidifyMechanics = false;
 
   bool enableInteriorViscosity = false;

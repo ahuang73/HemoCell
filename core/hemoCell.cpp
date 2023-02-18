@@ -281,6 +281,10 @@ void HemoCell::writeOutput() {
   writeFluidField_HDF5(*cellfields,param::dx,param::dt,iter);
   if (global.enableCEPACfield) {
     writeCEPACField_HDF5(*cellfields,param::dx,param::dt,iter);
+   
+  }
+  if(global.enableSource){
+    writeSourceField_HDF5(*cellfields, param::dx, param::dt, iter);
   }
   writeCellInfo_CSV(*this);
   global.statistics.getCurrent().stop();
@@ -323,10 +327,15 @@ void HemoCell::iterate() {
   lattice->collideAndStream();
   global.statistics.getCurrent().stop();
 
-  if (global.enableCEPACfield)
-    {
+  if (global.enableCEPACfield){
       global.statistics.getCurrent()["CEPACcollideAndStream"].start();
       cellfields->CEPACfield->collideAndStream();
+      global.statistics.getCurrent().stop();
+
+  }
+  if(global.enableSource){
+      global.statistics.getCurrent()["sourceLatticeCollideAndStream"].start();
+      cellfields->sourceLattice->collideAndStream();
       global.statistics.getCurrent().stop();
   }
 

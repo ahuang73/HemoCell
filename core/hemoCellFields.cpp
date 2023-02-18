@@ -55,6 +55,7 @@ HemoCellFields::HemoCellFields( MultiBlockLattice3D<T, DESCRIPTOR> & lattice_, u
 HemoCellFields::~HemoCellFields() {
   if (CEPACfield) {
     delete CEPACfield;
+    delete sourceLattice;
   }
   if (immersedParticles) {
     delete immersedParticles;
@@ -162,7 +163,7 @@ void HemoCellFields::createSourceField() {
   
   integrateProcessingFunctional ( // instead of integrateProcessingFunctional
     new LatticeToPassiveAdvDiff3D<T,DESCRIPTOR,CEPAC_DESCRIPTOR>(1),
-    lattice->getBoundingBox(), *lattice, *sourceLattice, 1);
+    lattice->getBoundingBox(), *lattice, *sourceLattice, 1); //add three lattices?
 
 }
 

@@ -76,7 +76,10 @@ int main(int argc, char *argv[])
     hemocell.lattice->toggleInternalStatistics(false);
     // Equilibrate everything
     hemocell.latticeEquilibrium(1., plb::Array<double, 3>(0., 0., 0.));
-    Box3D source (27,35,27,35,27,27);
+    Box3D source ((*cfg)["domain"]["sourcex1"].read<int>(),(*cfg)["domain"]["sourcex2"].read<int>(),
+    (*cfg)["domain"]["sourcey1"].read<int>(),
+    (*cfg)["domain"]["sourcey2"].read<int>(),
+    (*cfg)["domain"]["sourcez1"].read<int>(),(*cfg)["domain"]["sourcez2"].read<int>());
    
     
 
@@ -120,17 +123,17 @@ int main(int argc, char *argv[])
                               OUTPUT_SHEAR_STRESS});
 
     hemocell.setCEPACOutputs({OUTPUT_DENSITY});
-
+    hemocell.setSourceOutputs({OUTPUT_DENSITY});
     plb::initializeAtEquilibrium(*hemocell.cellfields->CEPACfield, (*hemocell.cellfields->CEPACfield).getBoundingBox(), 0.0, {0.0,0.0,0.0});
+
     // Finalize everything
     OnLatticeAdvectionDiffusionBoundaryCondition3D<T,CEPAC_DESCRIPTOR>* diffusionBoundary = createLocalAdvectionDiffusionBoundaryCondition3D<T, CEPAC_DESCRIPTOR>();
-    diffusionBoundary->addTemperatureBoundary2N(source,*hemocell.cellfields->CEPACfield);
-    Dynamics<T, CEPAC_DESCRIPTOR> * diffusionDynamics = new AdvectionDiffusionBGKdynamics<T, CEPAC_DESCRIPTOR>(0.09);
-    MultiBlockManagement3D management = defaultMultiBlockPolicy3D().getMultiBlockManagement(10, 10, 10, 2);
+    diffusionBoundary->addTemperatureBoundary2N(source,*hemocell.cellfields->CEPACfield, boundary::density);
     plb::setBoundaryDensity(*hemocell.cellfields->CEPACfield,source,0.05);
     hemocell.cellfields->createSourceField();
     
-   
+    diffusionBoundary->addTemperatureBoundary2N(source,*hemocell.cellfields->sourceLattice, boundary::density);
+    plb::setBoundaryDensity(*hemocell.cellfields->sourceLattice,source,0.50);
     
     hemocell.lattice->initialize();
     hemocell.cellfields->CEPACfield->initialize();

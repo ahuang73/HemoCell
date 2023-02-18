@@ -14,6 +14,7 @@
     <logDirectory>log</logDirectory>
     <logFile>logfile</logFile>
     <enableCEPACfield>1</enableCEPACfield>
+    <enableSource>1</enableSource>
     <shearRate>600</shearRate>
 </parameters>
 
@@ -41,6 +42,12 @@
     <kRep> 2e-22 </kRep> <!-- Repulsion Constant -->
     <RepCutoff> 0.7 </RepCutoff> <!-- RepulsionCutoff -->
     <BRepCutoff> 0.7 </BRepCutoff> <!-- RepulsionCutoff -->
+    <sourcex1> 22 </sourcex1>
+    <sourcex2> 27</sourcex2>
+    <sourcey1> 22</sourcey1>
+    <sourcey2>27 </sourcey2>
+    <sourcez1> 22</sourcez1>
+    <sourcez2> 27</sourcez2>
 </domain>
 
 <sim>

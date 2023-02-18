@@ -44,6 +44,10 @@ function do_work {
         ${python_c} ${scriptsDir}/FluidHDF5.py CEPAC; 
         continue
       fi
+      if [ $name == "sourceLattice" ]; then
+        ${python_c} ${scriptsDir}/FluidHDF5.py sourceLattice; 
+        continue
+      fi
       echo ${name}:
       ${python_c} ${scriptsDir}/CellHDF5toXMF.py ${name}; 
     done

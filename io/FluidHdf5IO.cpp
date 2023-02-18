@@ -40,6 +40,18 @@ void writeCEPACField_HDF5(HemoCellFields& cellfields, T dx, T dt, plint iter, st
   
   global.statistics.getCurrent().stop();
 }
+
+void writeSourceField_HDF5(HemoCellFields& cellfields, T dx, T dt, plint iter, string preString) {
+  global.statistics.getCurrent()["writeSourceField"].start();
+
+  WriteFluidField<plb::descriptors::AdvectionDiffusionD3Q19Descriptor> * wff = new WriteFluidField<plb::descriptors::AdvectionDiffusionD3Q19Descriptor>(cellfields, *cellfields.sourceLattice,iter,"sourceLattice",dx,dt,cellfields.desiredSourceFieldOutputVariables);
+  vector<MultiBlock3D*> wrapper;
+  wrapper.push_back(cellfields.sourceLattice);
+  wrapper.push_back(cellfields.immersedParticles); //Needed for the atomicblock id, nothing else
+  applyProcessingFunctional(wff,cellfields.sourceLattice->getBoundingBox(),wrapper);
+  
+  global.statistics.getCurrent().stop();
+}
 void writeFluidField_HDF5(HemoCellFields& cellfields, T dx, T dt, plint iter, string preString) {
   global.statistics.getCurrent()["writeFluidField"].start();
 
