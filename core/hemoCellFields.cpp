@@ -49,6 +49,9 @@ HemoCellFields::HemoCellFields( MultiBlockLattice3D<T, DESCRIPTOR> & lattice_, u
   if (global.enableCEPACfield) {
     createCEPACfield();
   } 
+  if(global.enableSource){
+    createSourceField();
+  }
   InitAfterLoadCheckpoint();
 }
 

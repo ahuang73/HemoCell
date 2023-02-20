@@ -122,22 +122,22 @@ int main(int argc, char *argv[])
                               OUTPUT_SHEAR_RATE, OUTPUT_STRAIN_RATE,
                               OUTPUT_SHEAR_STRESS});
 
-    hemocell.setCEPACOutputs({OUTPUT_DENSITY});
+    //hemocell.setCEPACOutputs({OUTPUT_DENSITY});
     hemocell.setSourceOutputs({OUTPUT_DENSITY});
-    plb::initializeAtEquilibrium(*hemocell.cellfields->CEPACfield, (*hemocell.cellfields->CEPACfield).getBoundingBox(), 0.0, {0.0,0.0,0.0});
+    plb::initializeAtEquilibrium(*hemocell.cellfields->sourceLattice, (*hemocell.cellfields->sourceLattice).getBoundingBox(), 0.0, {0.0,0.0,0.0});
 
     // Finalize everything
     OnLatticeAdvectionDiffusionBoundaryCondition3D<T,CEPAC_DESCRIPTOR>* diffusionBoundary = createLocalAdvectionDiffusionBoundaryCondition3D<T, CEPAC_DESCRIPTOR>();
-    diffusionBoundary->addTemperatureBoundary2N(source,*hemocell.cellfields->CEPACfield, boundary::density);
-    plb::setBoundaryDensity(*hemocell.cellfields->CEPACfield,source,0.05);
-    hemocell.cellfields->createSourceField();
-    
+    //diffusionBoundary->addTemperatureBoundary2N(source,*hemocell.cellfields->CEPACfield, boundary::density);
+    //plb::setBoundaryDensity(*hemocell.cellfields->CEPACfield,bottomChannel,0.50);
     diffusionBoundary->addTemperatureBoundary2N(source,*hemocell.cellfields->sourceLattice, boundary::density);
-    plb::setBoundaryDensity(*hemocell.cellfields->sourceLattice,source,0.50);
+    plb::setBoundaryDensity(*hemocell.cellfields->sourceLattice,source,100);
     
     hemocell.lattice->initialize();
-    hemocell.cellfields->CEPACfield->initialize();
+    //hemocell.cellfields->CEPACfield->initialize();
     hemocell.cellfields->sourceLattice->initialize();
+    hemocell.enableBoundaryParticles((*cfg)["domain"]["kRep"].read<T>(), (*cfg)["domain"]["BRepCutoff"].read<T>(),(*cfg)["ibm"]["stepMaterialEvery"].read<int>());
+
     // Turn on periodicity in the X direction
     hemocell.setSystemPeriodicity(0, true);
 
@@ -148,7 +148,6 @@ int main(int argc, char *argv[])
     // simulation must run and when we want to save output
     unsigned int tmax = (*hemocell.cfg)["sim"]["tmax"].read<unsigned int>();
     unsigned int tmeas = (*hemocell.cfg)["sim"]["tmeas"].read<unsigned int>();
-
     // This is the main running loop, run for tmax iterations.
     while (hemocell.iter < tmax)
     {

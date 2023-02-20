@@ -13,7 +13,7 @@
     <outputDirectory>tmp</outputDirectory>
     <logDirectory>log</logDirectory>
     <logFile>logfile</logFile>
-    <enableCEPACfield>1</enableCEPACfield>
+    <enableCEPACfield>0</enableCEPACfield>
     <enableSource>1</enableSource>
     <shearRate>600</shearRate>
 </parameters>
@@ -42,16 +42,16 @@
     <kRep> 2e-22 </kRep> <!-- Repulsion Constant -->
     <RepCutoff> 0.7 </RepCutoff> <!-- RepulsionCutoff -->
     <BRepCutoff> 0.7 </BRepCutoff> <!-- RepulsionCutoff -->
-    <sourcex1> 22 </sourcex1>
-    <sourcex2> 27</sourcex2>
-    <sourcey1> 22</sourcey1>
-    <sourcey2>27 </sourcey2>
-    <sourcez1> 22</sourcez1>
-    <sourcez2> 27</sourcez2>
+    <sourcex1> 1 </sourcex1>
+    <sourcex2> 4 </sourcex2>
+    <sourcey1> 47 </sourcey1>
+    <sourcey2> 47 </sourcey2>
+    <sourcez1> 4 </sourcez1>
+    <sourcez2> 8 </sourcez2>
 </domain>
 
 <sim>
-    <tmax> 2000 </tmax> <!-- total number of iterations -->
+    <tmax> 10000 </tmax> <!-- total number of iterations -->
     <tmeas>  100 </tmeas> <!-- interval after which data is written --> 
     <tcheckpoint> 200000 </tcheckpoint> 
     <tbalance> 1000 </tbalance> <!-- interval after which balance is performed --> 
