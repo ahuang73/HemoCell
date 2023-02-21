@@ -21,12 +21,16 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+#include <hemocell.h>
+#include <helper/voxelizeDomain.h>
+#include "rbcHighOrderModel.h"
+#include "pltSimpleModel.h"
+#include "wbcHighOrderModel.h"
+#include "helper/hemocellInit.hh"
 #include "cellInfo.h"
 #include "fluidInfo.h"
-#include "hemocell.h"
 #include "particleInfo.h"
-#include "pltSimpleModel.h"
-#include "rbcHighOrderModel.h"
+#include "writeCellInfoCSV.h"
 #include <fenv.h>
 
 #include "palabos3D.h"
@@ -61,17 +65,17 @@ int main(int argc, char *argv[]) {
   OnLatticeBoundaryCondition3D<T,DESCRIPTOR>* boundaryCondition
                 = createLocalBoundaryCondition3D<T,DESCRIPTOR>();
 
-  hemocell.lattice->toggleInternalStatistics(false);
+/*  hemocell.lattice->toggleInternalStatistics(false);
 
   // extract sides of the rectangular domain for assignment of boundary
   // conditions along the outer planes of the domain
   Box3D top = Box3D(0, nx-1, 0, ny-1, nz-1, nz-1);
   Box3D bottom = Box3D(0, nx-1, 0, ny-1, 0, 0);
-  Box3D front = Box3D(0, nx-1, 0, 0, 0, nz-1);
-  Box3D back  = Box3D(0, nx-1, ny-1, ny-1, 0, nz-1);
+//  Box3D front = Box3D(0, nx-1, 0, 0, 0, nz-1);
+//  Box3D back  = Box3D(0, nx-1, ny-1, ny-1, 0, nz-1);
 
   // all directions have periodicity
-  hemocell.lattice->periodicity().toggleAll(false);
+  lattice.periodicity().toggleAll(true);
 
   // bounce back conditions along the front and back of the domain
   defineDynamics(*hemocell.lattice, front, new BounceBack<T, DESCRIPTOR> );
@@ -83,9 +87,9 @@ int main(int argc, char *argv[]) {
 
   // define shear velocity along top/bottom planes (z axis)
   // shear velocity given by `height * shear rate / 2`
-  T vHalf = (nz-1)*param::shearrate_lbm*0.5;
-  setBoundaryVelocity(*hemocell.lattice, top, plb::Array<T,3>(-vHalf,0.0,0.0));
-  setBoundaryVelocity(*hemocell.lattice, bottom, plb::Array<T,3>(vHalf,0.0,0.0));
+  T vtop = (nz-1)*param::shearrate_lbm;
+  setBoundaryVelocity(*hemocell.lattice, top, plb::Array<T,3>(vtop,0.0,0.0));
+  setBoundaryVelocity(*hemocell.lattice, bottom, plb::Array<T,3>(0.0,0.0,0.0));
 
   hemocell.latticeEquilibrium(1., plb::Array<T, 3>(0.0, 0.0, 0.0));
 
@@ -96,9 +100,14 @@ int main(int argc, char *argv[]) {
   setExternalVector(*hemocell.lattice, (*hemocell.lattice).getBoundingBox(),
                     DESCRIPTOR<T>::ExternalField::forceBeginsAt,
                     plb::Array<T, DESCRIPTOR<T>::d>(
-                        0.0, 0.0, 0.0));
+                        0.0, 0.0, 0.0)); */
+  hemocell.lattice->toggleInternalStatistics(false);
 
-  // initialise the lattic
+  iniLatticeSquareCouette(*hemocell.lattice, nx, ny, nz, *boundaryCondition, param::shearrate_lbm);
+
+  hemocell.lattice->initialize();
+
+  // initialise the lattice
   hemocell.lattice->initialize();
 
   // initialise the cells
@@ -113,16 +122,31 @@ int main(int argc, char *argv[]) {
   hemocell.setParticleVelocityUpdateTimeScaleSeparation(
       (*cfg)["ibm"]["stepParticleEvery"].read<int>());
 
-  // hemocell output fields
-  vector<int> outputs = {OUTPUT_POSITION, OUTPUT_TRIANGLES, OUTPUT_FORCE};
-  hemocell.setOutputs("RBC", outputs);
+  hemocell.addCellType<WbcHighOrderModel>("WBC", WBC_SPHERE);
+  hemocell.setMaterialTimeScaleSeparation("WBC", (*cfg)["ibm"]["stepMaterialEvery"].read<int>());
 
+
+    hemocell.setParticleVelocityUpdateTimeScaleSeparation((*cfg)["ibm"]["stepParticleEvery"].read<int>());
+
+    hemocell.setRepulsion((*cfg)["domain"]["kRep"].read<T>(), (*cfg)["domain"]["RepCutoff"].read<T>());
+    hemocell.setRepulsionTimeScaleSeperation((*cfg)["ibm"]["stepMaterialEvery"].read<int>());
+  // hemocell output fields
+  vector<int> outputs = {OUTPUT_POSITION,OUTPUT_TRIANGLES,OUTPUT_FORCE,OUTPUT_FORCE_VOLUME,OUTPUT_FORCE_BENDING,OUTPUT_FORCE_LINK,OUTPUT_FORCE_AREA,OUTPUT_FORCE_VISC,OUTPUT_FORCE_REPULSION,OUTPUT_FORCE_ADHESION};
+
+  hemocell.setOutputs("RBC", outputs);
+  hemocell.setOutputs("WBC", outputs);
   // LBM fluid output fields
-  outputs = {OUTPUT_VELOCITY, OUTPUT_DENSITY};
+  outputs = {OUTPUT_VELOCITY,OUTPUT_DENSITY,OUTPUT_FORCE};
   hemocell.setFluidOutputs(outputs);
+
+
+
 
   // Turn on periodicity in the `x`-direction: along shear
   hemocell.setSystemPeriodicity(0, true);
+
+  // Enable boundary particles
+  hemocell.enableBoundaryParticles((*cfg)["domain"]["BkRep"].read<T>(), (*cfg)["domain"]["BRepCutoff"].read<T>(),(*cfg)["domain"]["BkAdh"].read<T>(), (*cfg)["domain"]["BAdhCutoff"].read<T>(),(*cfg)["ibm"]["stepMaterialEvery"].read<int>());
 
   // loading the cellfield
   if (not cfg->checkpointed) {
@@ -163,6 +187,9 @@ int main(int argc, char *argv[]) {
       hlog << " | # of RBC: "
            << CellInformationFunctionals::getNumberOfCellsFromType(&hemocell,
                                                                    "RBC");
+      hlog << " | # of WBC: "
+          << CellInformationFunctionals::getNumberOfCellsFromType(&hemocell,
+                            "WBC");
       FluidStatistics finfo = FluidInfo::calculateVelocityStatistics(&hemocell);
       double toMpS = param::dx / param::dt;
       hlog << "\t Velocity  -  max.: " << finfo.max * toMpS

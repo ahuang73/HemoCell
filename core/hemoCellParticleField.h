@@ -57,11 +57,14 @@ public:
     virtual void removeParticles(plint tag);
     virtual void findParticles(plb::Box3D domain,
                                std::vector<HemoCellParticle*>& found);
+    virtual void findNonRBCParticles(plb::Box3D domain,
+                               std::vector<HemoCellParticle*>& found);                           
     virtual void findParticles(plb::Box3D domain,
                                std::vector<const HemoCellParticle*>& found) const;
     void findParticles(plb::Box3D domain,
                                std::vector<HemoCellParticle*>& found,
                                pluint type);
+
     virtual void advanceParticles();
     void applyRepulsionForce(bool forced = false);
     virtual void interpolateFluidVelocity(plb::Box3D domain);
