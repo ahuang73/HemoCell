@@ -112,9 +112,6 @@ int main(int argc, char *argv[])
     hemocell.addCellType<PltSimpleModel>("PLT", ELLIPSOID_FROM_SPHERE);
     hemocell.setMaterialTimeScaleSeparation("PLT", (*cfg)["ibm"]["stepMaterialEvery"].read<int>());
 
-    // hemocell.setParticleVelocityUpdateTimeScaleSeparation((*cfg)["ibm"]["stepParticleEvery"].read<int>());
-    // Request outputs from the simulation, here we have requested all of the
-    // possible outputs!
     vector<int> outputs = {OUTPUT_POSITION,OUTPUT_TRIANGLES,OUTPUT_FORCE,OUTPUT_FORCE_VOLUME,OUTPUT_FORCE_BENDING,OUTPUT_FORCE_LINK,OUTPUT_FORCE_AREA,OUTPUT_FORCE_VISC};
     hemocell.setOutputs("RBC", outputs);
     hemocell.setOutputs("PLT", outputs);
@@ -122,20 +119,16 @@ int main(int argc, char *argv[])
                               OUTPUT_SHEAR_RATE, OUTPUT_STRAIN_RATE,
                               OUTPUT_SHEAR_STRESS});
 
-    //hemocell.setCEPACOutputs({OUTPUT_DENSITY});
     hemocell.setSourceOutputs({OUTPUT_DENSITY});
     plb::initializeAtEquilibrium(*hemocell.cellfields->sourceLattice, (*hemocell.cellfields->sourceLattice).getBoundingBox(), 0.0, {0.0,0.0,0.0});
 
-    // Finalize everything
     OnLatticeAdvectionDiffusionBoundaryCondition3D<T,CEPAC_DESCRIPTOR>* diffusionBoundary = createLocalAdvectionDiffusionBoundaryCondition3D<T, CEPAC_DESCRIPTOR>();
-    //diffusionBoundary->addTemperatureBoundary2N(source,*hemocell.cellfields->CEPACfield, boundary::density);
-    //plb::setBoundaryDensity(*hemocell.cellfields->CEPACfield,bottomChannel,0.50);
     diffusionBoundary->addTemperatureBoundary2N(source,*hemocell.cellfields->sourceLattice, boundary::density);
-    plb::setBoundaryDensity(*hemocell.cellfields->sourceLattice,source,100);
+    plb::setBoundaryDensity(*hemocell.cellfields->sourceLattice,source,0.5);
     
     hemocell.lattice->initialize();
-    //hemocell.cellfields->CEPACfield->initialize();
     hemocell.cellfields->sourceLattice->initialize();
+
     hemocell.enableBoundaryParticles((*cfg)["domain"]["kRep"].read<T>(), (*cfg)["domain"]["BRepCutoff"].read<T>(),(*cfg)["ibm"]["stepMaterialEvery"].read<int>());
 
     // Turn on periodicity in the X direction

@@ -166,7 +166,7 @@ void HemoCellFields::createSourceField() {
   
   integrateProcessingFunctional ( // instead of integrateProcessingFunctional
     new LatticeToPassiveAdvDiff3D<T,DESCRIPTOR,CEPAC_DESCRIPTOR>(1),
-    lattice->getBoundingBox(), *lattice, *sourceLattice, 1); //add three lattices?
+    lattice->getBoundingBox(), *lattice, *sourceLattice, 1);
 
 }
 
