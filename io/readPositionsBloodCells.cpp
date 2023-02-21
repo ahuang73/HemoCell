@@ -394,20 +394,19 @@ void ReadPositionsBloodCellField3D::processGenericBlocks (
 
 
     std::map<int, bool> map = particleFields[0]->get_lpc();
-
-    
-
+    int sizes[cellFields.size()];
     for (plint a = 0; a < cellFields.size(); a++)
     {
         ifstream oldposfile(cellFields[a]->name + ".pos");
         ofstream newposfile(cellFields[a]->name +"_remaining.pos");
+        oldposfile >> sizes[a];
         newposfile << cellSizes[a] << std::endl;
         for (plint i = 0; oldposfile; i++)
         {
             std::string line;
             std::getline(oldposfile, line);
             int typeSize = 0;
-            typeSize = (a>0)? cellSizes[a-1] : 0;
+            typeSize = (a>0)? sizes[a-1] : 0;
             if (cellidtype[i-1+typeSize] == a && map[i-1+typeSize])
             {
                 newposfile << line << std::endl;
