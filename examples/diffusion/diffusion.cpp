@@ -13,9 +13,54 @@
 #include "palabos3D.h"
 #include "palabos3D.hh"
 
-
 using namespace std;
 using namespace hemo;
+template <
+    typename T, template <typename NSU> class nsDescriptor,
+    template <typename ADU> class adDescriptor>
+struct IniTemperatureRayleighBenardProcessor3D :
+    public BoxProcessingFunctional3D_L<T, adDescriptor> {
+    IniTemperatureRayleighBenardProcessor3D(
+        RayleighBenardFlowParam<T, nsDescriptor, adDescriptor> parameters_) :
+        parameters(parameters_)
+    { }
+    virtual void process(Box3D domain, BlockLattice3D<T, adDescriptor> &adLattice)
+    {
+        Dot3D absoluteOffset = adLattice.getLocation();
+
+        for (plint iX = domain.x0; iX <= domain.x1; ++iX) {
+            for (plint iY = domain.y0; iY <= domain.y1; ++iY) {
+                for (plint iZ = domain.z0; iZ <= domain.z1; ++iZ) {
+                    plint absoluteZ = absoluteOffset.z + iZ;
+
+                    T temperature = parameters.getHotTemperature()
+                                    - parameters.getDeltaTemperature() / (T)(parameters.getNz() - 1)
+                                          * (T)absoluteZ;
+
+                    plb::Array<T, adDescriptor<T>::d> jEq(0., 0., 0.);
+                    adLattice.get(iX, iY, iZ).defineDensity(temperature);
+                    iniCellAtEquilibrium(adLattice.get(iX, iY, iZ), temperature, jEq);
+                }
+            }
+        }
+    }
+    virtual IniTemperatureRayleighBenardProcessor3D<T, nsDescriptor, adDescriptor> *clone() const
+    {
+        return new IniTemperatureRayleighBenardProcessor3D<T, nsDescriptor, adDescriptor>(*this);
+    }
+
+    virtual void getTypeOfModification(std::vector<modif::ModifT> &modified) const
+    {
+        modified[0] = modif::staticVariables;
+    }
+    virtual BlockDomain::DomainT appliesTo() const
+    {
+        return BlockDomain::bulkAndEnvelope;
+    }
+
+private:
+    RayleighBenardFlowParam<T, nsDescriptor, adDescriptor> parameters;
+};
 
 int main(int argc, char *argv[])
 {
@@ -24,10 +69,22 @@ int main(int argc, char *argv[])
         cout << "Usage: " << argv[0] << " <configuration.xml>" << endl;
         return -1;
     }
+
+    const T lx = 2.0;
+    const T ly = 2.0;
+    const T lz = 1.0;
+    const T uMax = 0.1;
+    const T Pr = 1.0;
+    T Ra = 0.;
+    const T hotTemperature = 1.0;
+    const T coldTemperature = 0.0;
+    const plint resolution = 30;
+    plb::Array<T, DESCRIPTOR<T>::d> forceOrientation(T(), T(), (T)1);
+
     // The first argument is the config.xml location, the second and third argument
     // are necessary as a passthrough for the Palabos initialization
     HemoCell hemocell(argv[1], argc, argv);
-    Config * cfg = hemocell.cfg;
+    Config *cfg = hemocell.cfg;
 
     // Calculate and load in the lattice Boltzmann parameters from the config file
     // that will be used later on. Pretend that we are calculating the parameters
@@ -65,9 +122,7 @@ int main(int argc, char *argv[])
     Box3D bottomChannel(0, refDirN - 1, 0, refDirN - 1, 0, 0);
     Box3D backChannel(0, refDirN - 1, refDirN - 1, refDirN - 1, 0, refDirN - 1);
     Box3D frontChannel(0, refDirN - 1, 0, 0, 0, refDirN - 1);
-    
-  
-    
+
     defineDynamics(*hemocell.lattice, topChannel, new BounceBack<T, DESCRIPTOR>);
     defineDynamics(*hemocell.lattice, bottomChannel, new BounceBack<T, DESCRIPTOR>);
     defineDynamics(*hemocell.lattice, backChannel, new BounceBack<T, DESCRIPTOR>);
@@ -76,12 +131,10 @@ int main(int argc, char *argv[])
     hemocell.lattice->toggleInternalStatistics(false);
     // Equilibrate everything
     hemocell.latticeEquilibrium(1., plb::Array<double, 3>(0., 0., 0.));
-    Box3D source ((*cfg)["domain"]["sourcex1"].read<int>(),(*cfg)["domain"]["sourcex2"].read<int>(),
-    (*cfg)["domain"]["sourcey1"].read<int>(),
-    (*cfg)["domain"]["sourcey2"].read<int>(),
-    (*cfg)["domain"]["sourcez1"].read<int>(),(*cfg)["domain"]["sourcez2"].read<int>());
-   
-    
+    Box3D source((*cfg)["domain"]["sourcex1"].read<int>(), (*cfg)["domain"]["sourcex2"].read<int>(),
+                 (*cfg)["domain"]["sourcey1"].read<int>(),
+                 (*cfg)["domain"]["sourcey2"].read<int>(),
+                 (*cfg)["domain"]["sourcez1"].read<int>(), (*cfg)["domain"]["sourcez2"].read<int>());
 
     // After we set up the fluid, it is time to set up the particles in the
     // simulation
@@ -100,19 +153,18 @@ int main(int argc, char *argv[])
     // timesteps, recalculating this is the most costly step and since our
     // timestep is so small it can be done intermittently
     hemocell.setMaterialTimeScaleSeparation("RBC", (*cfg)["ibm"]["stepMaterialEvery"].read<int>());
-    
-    //double check what this does
-    hemocell.setInitialMinimumDistanceFromSolid("RBC", 0.5); 
-    
+
+    // double check what this does
+    hemocell.setInitialMinimumDistanceFromSolid("RBC", 0.5);
+
     // Only update the integrated velocity (from the fluid field to the particles)
     // every X timesteps.
     hemocell.setParticleVelocityUpdateTimeScaleSeparation(5);
 
-    
     hemocell.addCellType<PltSimpleModel>("PLT", ELLIPSOID_FROM_SPHERE);
     hemocell.setMaterialTimeScaleSeparation("PLT", (*cfg)["ibm"]["stepMaterialEvery"].read<int>());
 
-    vector<int> outputs = {OUTPUT_POSITION,OUTPUT_TRIANGLES,OUTPUT_FORCE,OUTPUT_FORCE_VOLUME,OUTPUT_FORCE_BENDING,OUTPUT_FORCE_LINK,OUTPUT_FORCE_AREA,OUTPUT_FORCE_VISC};
+    vector<int> outputs = {OUTPUT_POSITION, OUTPUT_TRIANGLES, OUTPUT_FORCE, OUTPUT_FORCE_VOLUME, OUTPUT_FORCE_BENDING, OUTPUT_FORCE_LINK, OUTPUT_FORCE_AREA, OUTPUT_FORCE_VISC};
     hemocell.setOutputs("RBC", outputs);
     hemocell.setOutputs("PLT", outputs);
     hemocell.setFluidOutputs({OUTPUT_VELOCITY, OUTPUT_DENSITY, OUTPUT_FORCE,
@@ -120,16 +172,35 @@ int main(int argc, char *argv[])
                               OUTPUT_SHEAR_STRESS});
 
     hemocell.setSourceOutputs({OUTPUT_DENSITY});
-    plb::initializeAtEquilibrium(*hemocell.cellfields->sourceLattice, (*hemocell.cellfields->sourceLattice).getBoundingBox(), 0.0, {0.0,0.0,0.0});
 
-    OnLatticeAdvectionDiffusionBoundaryCondition3D<T,CEPAC_DESCRIPTOR>* diffusionBoundary = createLocalAdvectionDiffusionBoundaryCondition3D<T, CEPAC_DESCRIPTOR>();
-    diffusionBoundary->addTemperatureBoundary2N(source,*hemocell.cellfields->sourceLattice, boundary::density);
-    plb::setBoundaryDensity(*hemocell.cellfields->sourceLattice,source,0.5);
+    OnLatticeAdvectionDiffusionBoundaryCondition3D<T, CEPAC_DESCRIPTOR> *diffusionBoundary = createLocalAdvectionDiffusionBoundaryCondition3D<T, CEPAC_DESCRIPTOR>();
+    diffusionBoundary->addTemperatureBoundary2N(bottomChannel, *hemocell.cellfields->sourceLattice);
+    diffusionBoundary->addTemperatureBoundary2P(topChannel, *hemocell.cellfields->sourceLattice);
+    plb::setBoundaryDensity(*hemocell.cellfields->sourceLattice, source, 1.2);
+
+    OnLatticeBoundaryCondition3D<T, DESCRIPTOR> *boundaryCond = createLocalBoundaryCondition3D<T, DESCRIPTOR>();
+    boundaryCond->addVelocityBoundary2N(bottomChannel, *hemocell.lattice);
+    boundaryCond->addVelocityBoundary2P(topChannel, *hemocell.lattice);
+    initializeAtEquilibrium(*hemocell.lattice, hemocell.lattice->getBoundingBox(), (T).1, plb::Array<T, 3>((T)0., (T)0., (T)0.));
+
+    RayleighBenardFlowParam<T, DESCRIPTOR, CEPAC_DESCRIPTOR> parameters(
+        Ra, Pr, uMax, coldTemperature, hotTemperature, resolution, lx, ly, lz);
+
+    applyProcessingFunctional(
+        new IniTemperatureRayleighBenardProcessor3D<T, DESCRIPTOR, CEPAC_DESCRIPTOR>(parameters),
+        hemocell.cellfields->sourceLattice->getBoundingBox(), *hemocell.cellfields->sourceLattice);
+
     
+
     hemocell.lattice->initialize();
     hemocell.cellfields->sourceLattice->initialize();
 
-    hemocell.enableBoundaryParticles((*cfg)["domain"]["kRep"].read<T>(), (*cfg)["domain"]["BRepCutoff"].read<T>(),(*cfg)["ibm"]["stepMaterialEvery"].read<int>());
+
+    integrateProcessingFunctional( // instead of integrateProcessingFunctional
+        new BoussinesqThermalProcessor3D<T, DESCRIPTOR, CEPAC_DESCRIPTOR>(parameters.getLatticeGravity(), parameters.getAverageTemperature(),
+                                                                          parameters.getDeltaTemperature(), forceOrientation),
+        hemocell.lattice->getBoundingBox(), *hemocell.lattice, *hemocell.cellfields->sourceLattice, 1);
+    hemocell.enableBoundaryParticles((*cfg)["domain"]["kRep"].read<T>(), (*cfg)["domain"]["BRepCutoff"].read<T>(), (*cfg)["ibm"]["stepMaterialEvery"].read<int>());
 
     // Turn on periodicity in the X direction
     hemocell.setSystemPeriodicity(0, true);
