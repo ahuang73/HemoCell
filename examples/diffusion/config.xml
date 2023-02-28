@@ -2,7 +2,7 @@
 <hemocell>
 
 <verbose>
-	<cellsDeletedInfo>0</cellsDeletedInfo> <!-- Give information about the location of deleted cells, this option impacts performance -->
+	<cellsDeletedInfo>1</cellsDeletedInfo> <!-- Give information about the location of deleted cells, this option impacts performance -->
 </verbose>
 
 <parameters>
@@ -42,12 +42,13 @@
     <kRep> 2e-22 </kRep> <!-- Repulsion Constant -->
     <RepCutoff> 0.7 </RepCutoff> <!-- RepulsionCutoff -->
     <BRepCutoff> 0.7 </BRepCutoff> <!-- RepulsionCutoff -->
-    <sourcex1> 1 </sourcex1>
-    <sourcex2> 4 </sourcex2>
-    <sourcey1> 47 </sourcey1>
-    <sourcey2> 47 </sourcey2>
-    <sourcez1> 4 </sourcez1>
-    <sourcez2> 8 </sourcez2>
+    <concentration> 100000 </concentration>
+    <sourcex1> 20 </sourcex1>
+    <sourcex2> 30 </sourcex2>
+    <sourcey1> 20 </sourcey1>
+    <sourcey2> 30 </sourcey2>
+    <sourcez1> 20 </sourcez1>
+    <sourcez2> 30 </sourcez2>
 </domain>
 
 <sim>

@@ -39,7 +39,7 @@ struct IniTemperatureRayleighBenardProcessor3D :
 
                     plb::Array<T, adDescriptor<T>::d> jEq(0., 0., 0.);
                     adLattice.get(iX, iY, iZ).defineDensity(temperature);
-                    iniCellAtEquilibrium(adLattice.get(iX, iY, iZ), temperature, jEq);
+                    iniCellAtEquilibrium(adLattice.get(iX, iY, iZ), temperature, jEq); //i think it's this that removes the RBCs OR its applyprocessingfunctinoal
                 }
             }
         }
@@ -173,33 +173,38 @@ int main(int argc, char *argv[])
 
     hemocell.setSourceOutputs({OUTPUT_DENSITY});
 
-    OnLatticeAdvectionDiffusionBoundaryCondition3D<T, CEPAC_DESCRIPTOR> *diffusionBoundary = createLocalAdvectionDiffusionBoundaryCondition3D<T, CEPAC_DESCRIPTOR>();
-    diffusionBoundary->addTemperatureBoundary2N(bottomChannel, *hemocell.cellfields->sourceLattice);
-    diffusionBoundary->addTemperatureBoundary2P(topChannel, *hemocell.cellfields->sourceLattice);
-    plb::setBoundaryDensity(*hemocell.cellfields->sourceLattice, source, 1.2);
+    //OnLatticeAdvectionDiffusionBoundaryCondition3D<T, CEPAC_DESCRIPTOR> *diffusionBoundary = createLocalAdvectionDiffusionBoundaryCondition3D<T, CEPAC_DESCRIPTOR>();
+    
+
+
+    
 
     OnLatticeBoundaryCondition3D<T, DESCRIPTOR> *boundaryCond = createLocalBoundaryCondition3D<T, DESCRIPTOR>();
     boundaryCond->addVelocityBoundary2N(bottomChannel, *hemocell.lattice);
     boundaryCond->addVelocityBoundary2P(topChannel, *hemocell.lattice);
-    initializeAtEquilibrium(*hemocell.lattice, hemocell.lattice->getBoundingBox(), (T).1, plb::Array<T, 3>((T)0., (T)0., (T)0.));
+    hemocell.latticeEquilibrium(1., plb::Array<double, 3>(0., 0., 0.));
 
-    RayleighBenardFlowParam<T, DESCRIPTOR, CEPAC_DESCRIPTOR> parameters(
-        Ra, Pr, uMax, coldTemperature, hotTemperature, resolution, lx, ly, lz);
-
-    applyProcessingFunctional(
-        new IniTemperatureRayleighBenardProcessor3D<T, DESCRIPTOR, CEPAC_DESCRIPTOR>(parameters),
-        hemocell.cellfields->sourceLattice->getBoundingBox(), *hemocell.cellfields->sourceLattice);
-
+    initializeAtEquilibrium(*hemocell.cellfields->sourceLattice,hemocell.cellfields->sourceLattice->getBoundingBox(), 0.0, plb::Array<T, 3>((T)0., (T)0., (T)0.));
+    T sourceConcentration = (*cfg)["domain"]["concentration"].read<int>();
+    initializeAtEquilibrium(*hemocell.cellfields->sourceLattice,source,sourceConcentration, plb::Array<T, 3>((T)0., (T)0., (T)0.)); 
     
+    // RayleighBenardFlowParam<T, DESCRIPTOR, CEPAC_DESCRIPTOR> parameters(
+    //     Ra, Pr, uMax, coldTemperature, hotTemperature, resolution, lx, ly, lz);
 
+    // applyProcessingFunctional(
+    //     new IniTemperatureRayleighBenardProcessor3D<T, DESCRIPTOR, CEPAC_DESCRIPTOR>(parameters),
+    //     hemocell.cellfields->sourceLattice->getBoundingBox(), *hemocell.cellfields->sourceLattice); //might remove RBCs here
     hemocell.lattice->initialize();
     hemocell.cellfields->sourceLattice->initialize();
 
+    // integrateProcessingFunctional( // instead of integrateProcessingFunctional
+    //     new BoussinesqThermalProcessor3D<T, DESCRIPTOR, CEPAC_DESCRIPTOR>(parameters.getLatticeGravity(), parameters.getAverageTemperature(),
+    //                                                                       parameters.getDeltaTemperature(), forceOrientation),
+    //     hemocell.lattice->getBoundingBox(), *hemocell.lattice, *hemocell.cellfields->sourceLattice, 1);    
 
-    integrateProcessingFunctional( // instead of integrateProcessingFunctional
-        new BoussinesqThermalProcessor3D<T, DESCRIPTOR, CEPAC_DESCRIPTOR>(parameters.getLatticeGravity(), parameters.getAverageTemperature(),
-                                                                          parameters.getDeltaTemperature(), forceOrientation),
-        hemocell.lattice->getBoundingBox(), *hemocell.lattice, *hemocell.cellfields->sourceLattice, 1);
+    
+
+   
     hemocell.enableBoundaryParticles((*cfg)["domain"]["kRep"].read<T>(), (*cfg)["domain"]["BRepCutoff"].read<T>(), (*cfg)["ibm"]["stepMaterialEvery"].read<int>());
 
     // Turn on periodicity in the X direction

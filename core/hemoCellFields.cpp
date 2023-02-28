@@ -142,32 +142,32 @@ void HemoCellFields::createCEPACfield() {
 
 }
 
+
 void HemoCellFields::createSourceField() {
   SparseBlockStructure3D* sbStructure = lattice->getSparseBlockStructure().clone();
   ThreadAttribution * tAttribution = lattice->getMultiBlockManagement().getThreadAttribution().clone();
   plint refinement = lattice->getMultiBlockManagement().getRefinementLevel();
   lattice->getBlockCommunicator();
-  sourceLattice = new MultiBlockLattice3D<T,CEPAC_DESCRIPTOR>(
+  sourceLattice = new MultiBlockLattice3D<T,SOURCE_DESCRIPTOR>(
           MultiBlockManagement3D( *sbStructure,
                                   tAttribution,
                                   envelopeSize,
                                   refinement ),
           plb::defaultMultiBlockPolicy3D().getBlockCommunicator(),
           plb::defaultMultiBlockPolicy3D().getCombinedStatistics(),
-          plb::defaultMultiBlockPolicy3D().getMultiCellAccess<T,CEPAC_DESCRIPTOR>(),
-          new plb::AdvectionDiffusionBGKdynamics<T,CEPAC_DESCRIPTOR>(param::tau_CEPAC)
+          plb::defaultMultiBlockPolicy3D().getMultiCellAccess<T,SOURCE_DESCRIPTOR>(),
+          new AdvectionDiffusionRLBdynamics<T, SOURCE_DESCRIPTOR>(param::tau_CEPAC) //adding "withSource breaks it"
           );
-  
+
   sourceLattice->periodicity().toggle(0,lattice->periodicity().get(0));
   sourceLattice->periodicity().toggle(1,lattice->periodicity().get(1));
   sourceLattice->periodicity().toggle(2,lattice->periodicity().get(2));
 
   sourceLattice->toggleInternalStatistics(false);
-  
-  integrateProcessingFunctional ( // instead of integrateProcessingFunctional
-    new LatticeToPassiveAdvDiff3D<T,DESCRIPTOR,CEPAC_DESCRIPTOR>(1),
-    lattice->getBoundingBox(), *lattice, *sourceLattice, 1);
 
+  integrateProcessingFunctional( // instead of integrateProcessingFunctional
+      new LatticeToPassiveAdvDiff3D<T, DESCRIPTOR, SOURCE_DESCRIPTOR>(1),
+      lattice->getBoundingBox(), *lattice, *sourceLattice, 1);
 }
 
 HemoCellField * HemoCellFields::addCellType(std::string name_, int constructType)

@@ -184,7 +184,7 @@ public:
   plb::MultiBlockLattice3D<T,CEPAC_DESCRIPTOR> * CEPACfield = 0; 
 
   // palabos field for source for diffusion
-  plb::MultiBlockLattice3D<T, CEPAC_DESCRIPTOR> *sourceLattice = 0;
+  plb::MultiBlockLattice3D<T, SOURCE_DESCRIPTOR> *sourceLattice = 0;
 
   ///Repulsion variable set through hemocell.h
   T repulsionCutoff = 0.0;
