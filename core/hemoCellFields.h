@@ -127,6 +127,8 @@ public:
 
   /// Apply (and calculate) the repulsion force between particles and the boundary
   void applyBoundaryRepulsionForce();
+
+  void calculateOxygenConcentration();
   
   /// Delete any incomplete cells on a block
   void deleteIncompleteCells(bool verbose = true);
@@ -281,6 +283,12 @@ public:
    void processGenericBlocks(plb::Box3D, std::vector<plb::AtomicBlock3D*>);
    HemoBoundaryRepulsionForce * clone() const;
   };
+
+  class HemoConcentration: public HemoCellFunctional {
+   void processGenericBlocks(plb::Box3D, std::vector<plb::AtomicBlock3D*>);
+   HemoConcentration * clone() const;
+  };
+
   class HemoDeleteIncompleteCells: public HemoCellFunctional {
    void processGenericBlocks(plb::Box3D, std::vector<plb::AtomicBlock3D*>);
    HemoDeleteIncompleteCells * clone() const;

@@ -52,12 +52,14 @@ public:
     hemo::Array<T,3> vPrevious;
 #endif
     plint cellId;
-    
+    unsigned char cellState;
+    T nearbyConcentration = 0.0;
     uint16_t vertexId;
     unsigned int restime;
     
     unsigned char celltype;
 
+  
 #ifdef SOLIDIFY_MECHANICS
     bool solidify;
 #endif

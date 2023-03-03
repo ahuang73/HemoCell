@@ -27,7 +27,6 @@
 </ibm>
 
 <domain>
-    <geometry> tube.stl </geometry>
     <fluidEnvelope> 2 </fluidEnvelope>
     <rhoP> 1025 </rhoP>   <!--Density of the surrounding fluid, Physical units [kg/m^3]-->
     <nuP> 1.1e-6 </nuP>   <!-- Kinematic viscosity of blood plasma, physical units [m^2/s]-->
@@ -42,7 +41,7 @@
     <kRep> 2e-22 </kRep> <!-- Repulsion Constant -->
     <RepCutoff> 0.7 </RepCutoff> <!-- RepulsionCutoff -->
     <BRepCutoff> 0.7 </BRepCutoff> <!-- RepulsionCutoff -->
-    <concentration> 100000 </concentration>
+    <concentration> 1000000 </concentration>
     <sourcex1> 20 </sourcex1>
     <sourcex2> 30 </sourcex2>
     <sourcey1> 20 </sourcey1>

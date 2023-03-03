@@ -64,6 +64,10 @@ public:
     void applyRepulsionForce(bool forced = false);
     virtual void interpolateFluidVelocity(plb::Box3D domain);
     virtual void spreadParticleForce(plb::Box3D domain);
+
+    void determineApoptosis();
+    void calculateOxygenConcentration();
+
     void separateForceVectors();
     void unifyForceVectors();
     void updateResidenceTime(unsigned int rtime);
@@ -137,6 +141,7 @@ public:
     pluint atomicBlockId;
     plb::BlockLattice3D<T, DESCRIPTOR> * atomicLattice = 0;
     plb::BlockLattice3D<T, CEPAC_DESCRIPTOR> * CEPAClattice = 0;
+    plb::BlockLattice3D<T, SOURCE_DESCRIPTOR> * sourceLattice = 0;
 
     vector<plint> neighbours;
     vector<plb::Dot3D> boundaryParticles;

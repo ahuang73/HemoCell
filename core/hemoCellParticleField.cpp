@@ -32,7 +32,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #pragma GCC diagnostic ignored "-Wint-in-bool-context"
 #include <Eigen3/Eigenvalues>
 #pragma GCC diagnostic pop
-
+#include "cellInfo.h"
 namespace hemo { 
 /* *************** class HemoParticleField3D ********************** */
 
@@ -835,6 +835,46 @@ void HemoCellParticleField::interpolateFluidVelocity(Box3D domain) {
     }
     particle.sv.v = velocity;
   }
+
+}
+
+void HemoCellParticleField::calculateOxygenConcentration()
+{
+
+  // map<int,CellInformation> info_per_cell;
+  // CellInformationFunctionals::calculateCellInformation(&hemocell,info_per_cell);
+  // HemoCellGatheringFunctional<CellInformation>::gather(info_per_cell);
+  plb::Box3D const box = sourceLattice->getBoundingBox();
+  plb::Dot3D const &location = sourceLattice->getLocation();
+  for(HemoCellParticle & particle:particles){
+    plint x = (particle.sv.position[0] - location.x) + 0.5;
+    plint y = (particle.sv.position[1] - location.y) + 0.5;
+    plint z = (particle.sv.position[2] - location.z) + 0.5;
+    if(!sourceLattice->get(x,y,z).getDynamics().isBoundary()){
+      particle.sv.nearbyConcentration = sourceLattice->get(x,y,z).computeDensity();
+
+    }
+    
+
+    std::cout<< "CONCENTRATION: "<<particle.sv.nearbyConcentration << std::endl;
+    T threshold = 1;
+    if(particle.sv.nearbyConcentration < threshold ){
+      particle.sv.cellState = APOPTOSIS;
+      particle.tag = 1;
+    }
+    else{
+      particle.sv.cellState = MOVEMENT;
+    }
+
+
+  }
+  removeParticles(1);
+  lpc_up_to_date = false;
+  pg_up_to_date = false;
+}
+
+void HemoCellParticleField::determineApoptosis()
+{
 
 }
 

@@ -371,6 +371,10 @@ void HemoCell::iterate() {
     global.statistics.getCurrent().stop();
   }
   
+  // if(global.enableSource){
+  //   cellfields->calculateOxygenConcentration();
+  // }
+
   // We can safely delete non-local cells here, assuming model timestep is divisible by velocity timestep
   if(iter % cellfields->particleVelocityUpdateTimescale == 0) {
     if (global.cellsDeletedInfo) {

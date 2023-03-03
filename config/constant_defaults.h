@@ -65,6 +65,11 @@ Select BGK dynamics with Guo's forcing method.
 #define CEPAC_DESCRIPTOR plb::descriptors::AdvectionDiffusionD3Q19Descriptor
 #endif
 
+#ifndef SOURCE_DESCRIPTOR
+#include "latticeBoltzmann/advectionDiffusionLattices.h"
+#define SOURCE_DESCRIPTOR plb::descriptors::AdvectionDiffusionD3Q19Descriptor
+#endif
+
 /*
 Force unconditional stability on the material model. Note: it will not make the model magically correct, only stable!
 FORCE_LIMIT sets the allowed maximal force coming from the constitutive model (in LBM units).
@@ -83,6 +88,14 @@ FORCE_LIMIT sets the allowed maximal force coming from the constitutive model (i
 #define WBC_SPHERE 0
 #define MESH_FROM_STL 2
 
+
+// CELL STATES CONSTANTS
+
+#define PROLIFERATION 0
+#define QUIESCENCE 1
+#define APOPTOSIS 2
+#define METABOLISM 3
+#define MOVEMENT 4
 /*
  * Defines for desired output per celltype, can save space/time etc. etc. also works for specific fluid ones (vel, force etc)
  */
@@ -98,6 +111,7 @@ FORCE_LIMIT sets the allowed maximal force coming from the constitutive model (i
 #define OUTPUT_TRIANGLES 3
 #define OUTPUT_VELOCITY 4
 #define OUTPUT_DENSITY 5
+#define OUTPUT_TEMPERATURE 6
 #define OUTPUT_VERTEX_ID 7
 #define OUTPUT_CELL_ID 8
 #define OUTPUT_CELL_DENSITY 9

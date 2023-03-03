@@ -117,7 +117,7 @@ int main(int argc, char *argv[])
     // x-direction
     hemocell.lattice->periodicity().toggleAll(false);
     hemocell.lattice->periodicity().toggle(0, true);
-    // Set up bounceback boundaries in the other directions
+    // Set up bounceback boundaries in the other directionsd
     Box3D topChannel(0, refDirN - 1, 0, refDirN - 1, refDirN - 1, refDirN - 1);
     Box3D bottomChannel(0, refDirN - 1, 0, refDirN - 1, 0, 0);
     Box3D backChannel(0, refDirN - 1, refDirN - 1, refDirN - 1, 0, refDirN - 1);
@@ -173,9 +173,10 @@ int main(int argc, char *argv[])
 
     hemocell.setSourceOutputs({OUTPUT_DENSITY});
 
-    //OnLatticeAdvectionDiffusionBoundaryCondition3D<T, CEPAC_DESCRIPTOR> *diffusionBoundary = createLocalAdvectionDiffusionBoundaryCondition3D<T, CEPAC_DESCRIPTOR>();
-    
-
+    OnLatticeAdvectionDiffusionBoundaryCondition3D<T, CEPAC_DESCRIPTOR> *diffusionBoundary = createLocalAdvectionDiffusionBoundaryCondition3D<T, CEPAC_DESCRIPTOR>();
+    // diffusionBoundary->addTemperatureBoundary2N(bottomChannel, *hemocell.cellfields->sourceLattice);
+    // diffusionBoundary->addTemperatureBoundary2P(topChannel, *hemocell.cellfields->sourceLattice);
+    // setBoundaryDensity(*hemocell.cellfields->sourceLattice, topChannel, (T)0.5);
 
     
 
@@ -188,19 +189,9 @@ int main(int argc, char *argv[])
     T sourceConcentration = (*cfg)["domain"]["concentration"].read<int>();
     initializeAtEquilibrium(*hemocell.cellfields->sourceLattice,source,sourceConcentration, plb::Array<T, 3>((T)0., (T)0., (T)0.)); 
     
-    // RayleighBenardFlowParam<T, DESCRIPTOR, CEPAC_DESCRIPTOR> parameters(
-    //     Ra, Pr, uMax, coldTemperature, hotTemperature, resolution, lx, ly, lz);
 
-    // applyProcessingFunctional(
-    //     new IniTemperatureRayleighBenardProcessor3D<T, DESCRIPTOR, CEPAC_DESCRIPTOR>(parameters),
-    //     hemocell.cellfields->sourceLattice->getBoundingBox(), *hemocell.cellfields->sourceLattice); //might remove RBCs here
     hemocell.lattice->initialize();
     hemocell.cellfields->sourceLattice->initialize();
-
-    // integrateProcessingFunctional( // instead of integrateProcessingFunctional
-    //     new BoussinesqThermalProcessor3D<T, DESCRIPTOR, CEPAC_DESCRIPTOR>(parameters.getLatticeGravity(), parameters.getAverageTemperature(),
-    //                                                                       parameters.getDeltaTemperature(), forceOrientation),
-    //     hemocell.lattice->getBoundingBox(), *hemocell.lattice, *hemocell.cellfields->sourceLattice, 1);    
 
     
 
@@ -233,6 +224,10 @@ int main(int argc, char *argv[])
         {
             hemocell.writeOutput();
         }
+        if(hemocell.iter == 200){
+            //initializeAtEquilibrium(*hemocell.cellfields->sourceLattice,source,-1*sourceConcentration, plb::Array<T, 3>((T)0., (T)0., (T)0.)); 
+            hemocell.cellfields->calculateOxygenConcentration();
+        }   
     }
     return 0;
 }

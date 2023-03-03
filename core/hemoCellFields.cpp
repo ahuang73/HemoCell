@@ -58,6 +58,8 @@ HemoCellFields::HemoCellFields( MultiBlockLattice3D<T, DESCRIPTOR> & lattice_, u
 HemoCellFields::~HemoCellFields() {
   if (CEPACfield) {
     delete CEPACfield;
+  }
+  if (sourceLattice){
     delete sourceLattice;
   }
   if (immersedParticles) {
@@ -148,6 +150,9 @@ void HemoCellFields::createSourceField() {
   ThreadAttribution * tAttribution = lattice->getMultiBlockManagement().getThreadAttribution().clone();
   plint refinement = lattice->getMultiBlockManagement().getRefinementLevel();
   lattice->getBlockCommunicator();
+  double Dp = 0;
+  double D  = Dp * param::dt / (param::dx * param::dx);
+  param::tau_CEPAC = ( 3. * D ) + 0.5; //param::tau;
   sourceLattice = new MultiBlockLattice3D<T,SOURCE_DESCRIPTOR>(
           MultiBlockManagement3D( *sbStructure,
                                   tAttribution,
@@ -156,7 +161,7 @@ void HemoCellFields::createSourceField() {
           plb::defaultMultiBlockPolicy3D().getBlockCommunicator(),
           plb::defaultMultiBlockPolicy3D().getCombinedStatistics(),
           plb::defaultMultiBlockPolicy3D().getMultiCellAccess<T,SOURCE_DESCRIPTOR>(),
-          new AdvectionDiffusionRLBdynamics<T, SOURCE_DESCRIPTOR>(param::tau_CEPAC) //adding "withSource breaks it"
+          new AdvectionDiffusionRLBdynamics<T, SOURCE_DESCRIPTOR>(param::tau_CEPAC) //adding "withSource" breaks it, tau = 0.5 -> condensed in the middle at the start, tau = 0.001 -> same behavior as taucepac
           );
 
   sourceLattice->periodicity().toggle(0,lattice->periodicity().get(0));
@@ -244,6 +249,9 @@ void HemoCellFields::InitAfterLoadCheckpoint()
     immersedParticles->getComponent(blocks[iBlock]).atomicLattice = &lattice->getComponent(blocks[iBlock]);
     if (global.enableCEPACfield && CEPACfield) {
       immersedParticles->getComponent(blocks[iBlock]).CEPAClattice = &CEPACfield->getComponent(blocks[iBlock]);
+    }
+    if(global.enableSource && sourceLattice){
+      immersedParticles->getComponent(blocks[iBlock]).sourceLattice = &sourceLattice->getComponent(blocks[iBlock]);
     }
     immersedParticles->getComponent(blocks[iBlock]).envelopeSize = envelopeSize;
     
@@ -601,6 +609,7 @@ void HemoCellFields::applyRepulsionForce() {
 void HemoCellFields::HemoBoundaryRepulsionForce::processGenericBlocks(Box3D domain, std::vector<AtomicBlock3D*> blocks) {
     dynamic_cast<HemoCellParticleField*>(blocks[0])->applyBoundaryRepulsionForce();
 }
+
 void HemoCellFields::applyBoundaryRepulsionForce() {
   global.statistics.getCurrent()["boundaryRepulsionForce"].start();
 
@@ -612,6 +621,20 @@ void HemoCellFields::applyBoundaryRepulsionForce() {
   global.statistics.getCurrent().stop();
 }
 
+void HemoCellFields::HemoConcentration::processGenericBlocks(Box3D domain, std::vector<AtomicBlock3D*> blocks) {
+    dynamic_cast<HemoCellParticleField*>(blocks[0])->calculateOxygenConcentration();
+}
+
+void HemoCellFields::calculateOxygenConcentration() {
+  global.statistics.getCurrent()["oxygenConcentration"].start();
+
+  vector<MultiBlock3D*>wrapper;
+  wrapper.push_back(immersedParticles);
+  HemoConcentration * fnct = new HemoConcentration();
+  applyProcessingFunctional(fnct,immersedParticles->getBoundingBox(),wrapper);
+
+  global.statistics.getCurrent().stop();
+}
 void HemoCellFields::HemoPopulateBoundaryParticles::processGenericBlocks(Box3D domain, std::vector<AtomicBlock3D*> blocks) {
     dynamic_cast<HemoCellParticleField*>(blocks[0])->populateBoundaryParticles();
 }
@@ -751,6 +774,7 @@ HemoCellFields::HemoSyncEnvelopes *        HemoCellFields::HemoSyncEnvelopes::cl
 HemoCellFields::HemoRepulsionForce *        HemoCellFields::HemoRepulsionForce::clone() const { return new HemoCellFields::HemoRepulsionForce(*this);}
 HemoCellFields::HemoBoundaryRepulsionForce *        HemoCellFields::HemoBoundaryRepulsionForce::clone() const { return new HemoCellFields::HemoBoundaryRepulsionForce(*this);}
 HemoCellFields::HemoDeleteIncompleteCells *        HemoCellFields::HemoDeleteIncompleteCells::clone() const { return new HemoCellFields::HemoDeleteIncompleteCells(*this);}
+HemoCellFields::HemoConcentration *        HemoCellFields::HemoConcentration::clone() const { return new HemoCellFields::HemoConcentration(*this);}
 HemoCellFields::HemoGetParticles *        HemoCellFields::HemoGetParticles::clone() const { return new HemoCellFields::HemoGetParticles(*this);}
 HemoCellFields::HemoSetParticles *        HemoCellFields::HemoSetParticles::clone() const { return new HemoCellFields::HemoSetParticles(*this);}
 HemoCellFields::HemoPopulateBoundaryParticles *        HemoCellFields::HemoPopulateBoundaryParticles::clone() const { return new HemoCellFields::HemoPopulateBoundaryParticles(*this);}
