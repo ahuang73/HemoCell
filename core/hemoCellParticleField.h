@@ -26,16 +26,18 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 namespace hemo {
   class HemoCellParticleField;
+  class HemoCell;
 }
 
 #include "hemoCellFields.h"
 #include "hemoCellParticleDataTransfer.h"
 #include "hemoCellParticle.h"
-
 #include "atomicBlock/blockLattice3D.hh"
 
 namespace hemo {
 using namespace std;
+class CellInformation;
+class HemoCell;
 class HemoCellParticleField : public plb::AtomicBlock3D {
 public:
     HemoCellParticleField(plint nx, plint ny, plint nz);
@@ -65,9 +67,9 @@ public:
     virtual void interpolateFluidVelocity(plb::Box3D domain);
     virtual void spreadParticleForce(plb::Box3D domain);
 
-    void determineApoptosis();
-    void calculateOxygenConcentration();
 
+    void determineApoptosisFromConcentration();
+    void determineImmuneResponseToCTC(HemoCell& hemocell);
     void separateForceVectors();
     void unifyForceVectors();
     void updateResidenceTime(unsigned int rtime);

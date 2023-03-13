@@ -622,10 +622,10 @@ void HemoCellFields::applyBoundaryRepulsionForce() {
 }
 
 void HemoCellFields::HemoConcentration::processGenericBlocks(Box3D domain, std::vector<AtomicBlock3D*> blocks) {
-    dynamic_cast<HemoCellParticleField*>(blocks[0])->calculateOxygenConcentration();
+    dynamic_cast<HemoCellParticleField*>(blocks[0])->determineApoptosisFromConcentration();
 }
 
-void HemoCellFields::calculateOxygenConcentration() {
+void HemoCellFields::determineApoptosisFromConcentration() {
   global.statistics.getCurrent()["oxygenConcentration"].start();
 
   vector<MultiBlock3D*>wrapper;

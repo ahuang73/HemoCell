@@ -838,7 +838,7 @@ void HemoCellParticleField::interpolateFluidVelocity(Box3D domain) {
 
 }
 
-void HemoCellParticleField::calculateOxygenConcentration()
+void HemoCellParticleField::determineApoptosisFromConcentration()
 {
 
   // map<int,CellInformation> info_per_cell;
@@ -846,21 +846,23 @@ void HemoCellParticleField::calculateOxygenConcentration()
   // HemoCellGatheringFunctional<CellInformation>::gather(info_per_cell);
   plb::Box3D const box = sourceLattice->getBoundingBox();
   plb::Dot3D const &location = sourceLattice->getLocation();
+  plint n = 0;
+  plint total = 0;
   for(HemoCellParticle & particle:particles){
     plint x = (particle.sv.position[0] - location.x) + 0.5;
     plint y = (particle.sv.position[1] - location.y) + 0.5;
     plint z = (particle.sv.position[2] - location.z) + 0.5;
-    if(!sourceLattice->get(x,y,z).getDynamics().isBoundary()){
-      particle.sv.nearbyConcentration = sourceLattice->get(x,y,z).computeDensity();
+ 
+    particle.sv.nearbyConcentration = sourceLattice->get(x,y,z).computeDensity();
+    total += particle.sv.nearbyConcentration;
+    n++;
 
-    }
     
-
-    std::cout<< "CONCENTRATION: "<<particle.sv.nearbyConcentration << std::endl;
+    
     T threshold = 1;
     if(particle.sv.nearbyConcentration < threshold ){
       particle.sv.cellState = APOPTOSIS;
-      particle.tag = 1;
+      //particle.tag = 1;
     }
     else{
       particle.sv.cellState = MOVEMENT;
@@ -868,15 +870,78 @@ void HemoCellParticleField::calculateOxygenConcentration()
 
 
   }
+
   removeParticles(1);
   lpc_up_to_date = false;
   pg_up_to_date = false;
 }
 
-void HemoCellParticleField::determineApoptosis()
-{
+void HemoCellParticleField::determineImmuneResponseToCTC(HemoCell& hemocell){
+  map<int,CellInformation> info_per_cell;
+  CellInformationFunctionals::calculateCellInformation(&hemocell,info_per_cell);
+  HemoCellGatheringFunctional<CellInformation>::gather(info_per_cell);
+  unsigned char typeWBCnumber = (*cellFields)["WBC"]->ctype;
+  unsigned char typeCTCnumber = (*cellFields)["CTC"]->ctype;
 
+  vector<CellInformation> WBCList;
+
+  //nearest ctc at [0] is for WBCcell at [0] and so on..
+  vector<CellInformation> CTCList;
+  vector<CellInformation> nearestCTC;
+
+  //get all the relevant cell information
+  for(auto cell = info_per_cell.begin(); cell != info_per_cell.end(); cell++){
+    if(cell->second.cellType == typeCTCnumber){
+      CTCList.push_back(cell->second);
+    }
+    else if(cell->second.cellType == typeWBCnumber){
+      WBCList.push_back(cell->second);
+
+    } 
+  }
+
+  for(int i = 0; i<WBCList.size(); i++)
+  {
+    hemo::Array<T,3> WBCPos = WBCList[i].position;
+    double minDistance = INT_MAX;
+    int cellId = 0;
+    for(int i = 0; i<CTCList.size(); i++)
+    {
+      hemo::Array<T,3> CTCPos = CTCList[i].position;
+      double distance = std::pow((CTCPos[0] - WBCPos[0])*(CTCPos[0] - WBCPos[0])+ (CTCPos[1] - WBCPos[1])*(CTCPos[1] - WBCPos[1]) + (CTCPos[2] - WBCPos[2])*(CTCPos[2] - WBCPos[2]),1/2);
+      if(distance < minDistance){
+        minDistance = distance;
+        cellId = CTCList[i].base_cell_id; //is this gonna work? if it doesn't i can just stuff the loop here up in the map loop
+      }
+    }
+    nearestCTC.push_back(info_per_cell[cellId]);
+  }
+  for(int i = 0; i<WBCList.size(); i++)
+  {
+    hemo::Array<T,3> WBCPos = WBCList[i].position;
+    hemo::Array<T,3> WBCVelocity = WBCList[i].velocity;
+    hemo::Array<T,3> CTCPos = nearestCTC[i].position;
+    hemo::Array<T,3> CTCVelocity = nearestCTC[i].velocity;
+    hemo::Array<T,3> CTCDirection = {CTCPos[0] - WBCPos[0], CTCPos[1] - WBCPos[1], CTCPos[2] - WBCPos[2]};
+    for(HemoCellParticle particle: particles){
+      if(particle.sv.cellId == WBCList[i].base_cell_id)
+      {
+        particle.sv.v += CTCDirection;
+      }
+    }
+
+  }
+
+
+  
+  
 }
+//returns nearest cellid
+plint findNearestCTC(plint WBCid){
+  
+}
+
+
 
 void HemoCellParticleField::spreadParticleForce(Box3D domain) {
   for( HemoCellParticle &particle:particles) {

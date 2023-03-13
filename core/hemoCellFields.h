@@ -128,7 +128,9 @@ public:
   /// Apply (and calculate) the repulsion force between particles and the boundary
   void applyBoundaryRepulsionForce();
 
-  void calculateOxygenConcentration();
+  void determineApoptosisFromConcentration();
+  
+  void WBCTrackCTC();
   
   /// Delete any incomplete cells on a block
   void deleteIncompleteCells(bool verbose = true);

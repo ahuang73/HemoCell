@@ -372,7 +372,7 @@ void HemoCell::iterate() {
   }
   
   // if(global.enableSource){
-  //   cellfields->calculateOxygenConcentration();
+  //   cellfields->determineApoptosisFromConcentration();
   // }
 
   // We can safely delete non-local cells here, assuming model timestep is divisible by velocity timestep
