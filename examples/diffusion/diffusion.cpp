@@ -3,6 +3,8 @@
 // This is the mechanical model for the cells that we want to use later on,
 // alternatives can be found in the mechanics folder
 #include <rbcHighOrderModel.h>
+#include <wbcHighOrderModel.h>
+#include "ctcHighOrderModel.h"
 // These are functions found in the helpers folder, they are not in the core of
 // HemoCell but can be handy nonetheless
 #include <cellInfo.h>
@@ -164,9 +166,17 @@ int main(int argc, char *argv[])
     hemocell.addCellType<PltSimpleModel>("PLT", ELLIPSOID_FROM_SPHERE);
     hemocell.setMaterialTimeScaleSeparation("PLT", (*cfg)["ibm"]["stepMaterialEvery"].read<int>());
 
+    hemocell.addCellType<WbcHighOrderModel>("WBC", WBC_SPHERE);
+    hemocell.setMaterialTimeScaleSeparation("WBC", (*cfg)["ibm"]["stepMaterialEvery"].read<int>());
+    
+    hemocell.addCellType<WbcHighOrderModel>("CTC", WBC_SPHERE);
+    hemocell.setMaterialTimeScaleSeparation("CTC", (*cfg)["ibm"]["stepMaterialEvery"].read<int>());
+
     vector<int> outputs = {OUTPUT_POSITION, OUTPUT_TRIANGLES, OUTPUT_FORCE, OUTPUT_FORCE_VOLUME, OUTPUT_FORCE_BENDING, OUTPUT_FORCE_LINK, OUTPUT_FORCE_AREA, OUTPUT_FORCE_VISC};
     hemocell.setOutputs("RBC", outputs);
     hemocell.setOutputs("PLT", outputs);
+    hemocell.setOutputs("WBC", outputs);
+    hemocell.setOutputs("CTC", outputs);
     hemocell.setFluidOutputs({OUTPUT_VELOCITY, OUTPUT_DENSITY, OUTPUT_FORCE,
                               OUTPUT_SHEAR_RATE, OUTPUT_STRAIN_RATE,
                               OUTPUT_SHEAR_STRESS});
@@ -224,9 +234,12 @@ int main(int argc, char *argv[])
         {
             hemocell.writeOutput();
         }
-        if(hemocell.iter == 200){
-            //initializeAtEquilibrium(*hemocell.cellfields->sourceLattice,source,-1*sourceConcentration, plb::Array<T, 3>((T)0., (T)0., (T)0.)); 
-            hemocell.cellfields->calculateOxygenConcentration();
+        if(hemocell.iter == 1000){
+            initializeAtEquilibrium(*hemocell.cellfields->sourceLattice,source,-1*sourceConcentration, plb::Array<T, 3>((T)0., (T)0., (T)0.)); 
+            
+        }
+        if(hemocell.iter > 200){
+            hemocell.cellfields->determineApoptosisFromConcentration();
         }   
     }
     return 0;

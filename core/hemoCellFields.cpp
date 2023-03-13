@@ -635,6 +635,20 @@ void HemoCellFields::determineApoptosisFromConcentration() {
 
   global.statistics.getCurrent().stop();
 }
+void HemoCellFields::HemoImmuneResponse::processGenericBlocks(Box3D domain, std::vector<AtomicBlock3D*> blocks) {
+    dynamic_cast<HemoCellParticleField*>(blocks[0])->determineImmuneResponseToCTC(hemocell);
+}
+
+void HemoCellFields::determineImmuneResponseToCTC() {
+  global.statistics.getCurrent()["immuneResponse"].start();
+
+  vector<MultiBlock3D*>wrapper;
+  wrapper.push_back(immersedParticles);
+  HemoImmuneResponse * fnct = new HemoImmuneResponse(hemocell);
+  applyProcessingFunctional(fnct,immersedParticles->getBoundingBox(),wrapper);
+
+  global.statistics.getCurrent().stop();
+}
 void HemoCellFields::HemoPopulateBoundaryParticles::processGenericBlocks(Box3D domain, std::vector<AtomicBlock3D*> blocks) {
     dynamic_cast<HemoCellParticleField*>(blocks[0])->populateBoundaryParticles();
 }
@@ -775,6 +789,7 @@ HemoCellFields::HemoRepulsionForce *        HemoCellFields::HemoRepulsionForce::
 HemoCellFields::HemoBoundaryRepulsionForce *        HemoCellFields::HemoBoundaryRepulsionForce::clone() const { return new HemoCellFields::HemoBoundaryRepulsionForce(*this);}
 HemoCellFields::HemoDeleteIncompleteCells *        HemoCellFields::HemoDeleteIncompleteCells::clone() const { return new HemoCellFields::HemoDeleteIncompleteCells(*this);}
 HemoCellFields::HemoConcentration *        HemoCellFields::HemoConcentration::clone() const { return new HemoCellFields::HemoConcentration(*this);}
+HemoCellFields::HemoImmuneResponse *        HemoCellFields::HemoImmuneResponse::clone() const { return new HemoCellFields::HemoImmuneResponse(*this);}
 HemoCellFields::HemoGetParticles *        HemoCellFields::HemoGetParticles::clone() const { return new HemoCellFields::HemoGetParticles(*this);}
 HemoCellFields::HemoSetParticles *        HemoCellFields::HemoSetParticles::clone() const { return new HemoCellFields::HemoSetParticles(*this);}
 HemoCellFields::HemoPopulateBoundaryParticles *        HemoCellFields::HemoPopulateBoundaryParticles::clone() const { return new HemoCellFields::HemoPopulateBoundaryParticles(*this);}

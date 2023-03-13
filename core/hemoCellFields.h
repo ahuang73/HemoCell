@@ -129,8 +129,8 @@ public:
   void applyBoundaryRepulsionForce();
 
   void determineApoptosisFromConcentration();
-  
-  void WBCTrackCTC();
+
+  void determineImmuneResponseToCTC();
   
   /// Delete any incomplete cells on a block
   void deleteIncompleteCells(bool verbose = true);
@@ -289,6 +289,15 @@ public:
   class HemoConcentration: public HemoCellFunctional {
    void processGenericBlocks(plb::Box3D, std::vector<plb::AtomicBlock3D*>);
    HemoConcentration * clone() const;
+  };
+
+  class HemoImmuneResponse : public HemoCellFunctional
+  {
+ public:
+   HemoImmuneResponse(HemoCell &hemocell_) : hemocell(hemocell_) {}
+   void processGenericBlocks(plb::Box3D, std::vector<plb::AtomicBlock3D *>);
+   HemoImmuneResponse *clone() const;
+   HemoCell &hemocell;
   };
 
   class HemoDeleteIncompleteCells: public HemoCellFunctional {
