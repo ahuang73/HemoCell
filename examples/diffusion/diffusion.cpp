@@ -235,11 +235,12 @@ int main(int argc, char *argv[])
             hemocell.writeOutput();
         }
         if(hemocell.iter == 1000){
-            initializeAtEquilibrium(*hemocell.cellfields->sourceLattice,source,-1*sourceConcentration, plb::Array<T, 3>((T)0., (T)0., (T)0.)); 
+            //initializeAtEquilibrium(*hemocell.cellfields->sourceLattice,source,-1*sourceConcentration, plb::Array<T, 3>((T)0., (T)0., (T)0.)); 
             
         }
-        if(hemocell.iter > 200){
-            hemocell.cellfields->determineApoptosisFromConcentration();
+        if(hemocell.iter > 400){
+            //hemocell.cellfields->determineApoptosisFromConcentration();
+            hemocell.cellfields->determineImmuneResponseToCTC();
         }   
     }
     return 0;

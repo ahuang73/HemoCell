@@ -353,7 +353,7 @@ void HemoCell::iterate() {
     cellfields->solidifyCells();
     global.statistics.getCurrent().stop();
   }
-  cellfields->determineImmuneResponseToCTC();
+  //cellfields->determineImmuneResponseToCTC();
   // ### 5 ###
   cellfields->advanceParticles();
 

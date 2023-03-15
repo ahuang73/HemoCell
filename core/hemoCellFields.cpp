@@ -626,7 +626,7 @@ void HemoCellFields::HemoConcentration::processGenericBlocks(Box3D domain, std::
 }
 
 void HemoCellFields::determineApoptosisFromConcentration() {
-  global.statistics.getCurrent()["oxygenConcentration"].start();
+  global.statistics.getCurrent()["determineApoptosisFromConcentration"].start();
 
   vector<MultiBlock3D*>wrapper;
   wrapper.push_back(immersedParticles);
@@ -640,7 +640,7 @@ void HemoCellFields::HemoImmuneResponse::processGenericBlocks(Box3D domain, std:
 }
 
 void HemoCellFields::determineImmuneResponseToCTC() {
-  global.statistics.getCurrent()["immuneResponse"].start();
+  global.statistics.getCurrent()["determineImmuneResponseToCTC"].start();
 
   vector<MultiBlock3D*>wrapper;
   wrapper.push_back(immersedParticles);

@@ -577,6 +577,7 @@ void HemoCellParticleField::advanceParticles() {
 	(y >= box.y0) && (y <= box.y1) &&
 	(z >= box.z0) && (z <= box.z1)) {
       if (atomicLattice->get(x,y,z).getDynamics().isBoundary()) {
+        std::cout<<"boundary: " << x << " " << y << " " << z<< " CELL ID & POS:" << particle.sv.cellId << particle.sv.position[0] << " " << particle.sv.position[1] << " " <<particle.sv.position[2] <<   std::endl;
         particle.tag = 1;
       }
     }
@@ -862,7 +863,7 @@ void HemoCellParticleField::determineApoptosisFromConcentration()
     T threshold = 1;
     if(particle.sv.nearbyConcentration < threshold ){
       particle.sv.cellState = APOPTOSIS;
-      //particle.tag = 1;
+      particle.tag = 1;
     }
     else{
       particle.sv.cellState = MOVEMENT;
@@ -884,12 +885,9 @@ void HemoCellParticleField::determineImmuneResponseToCTC(HemoCell& hemocell){
   unsigned char typeCTCnumber = (*cellFields)["CTC"]->ctype;
 
   vector<CellInformation> WBCList;
-
-  //nearest ctc at [0] is for WBCcell at [0] and so on..
   vector<CellInformation> CTCList;
   vector<CellInformation> nearestCTC;
 
-  //get all the relevant cell information
   for(auto cell = info_per_cell.begin(); cell != info_per_cell.end(); cell++){
     if(cell->second.cellType == typeCTCnumber){
       CTCList.push_back(cell->second);
@@ -898,6 +896,9 @@ void HemoCellParticleField::determineImmuneResponseToCTC(HemoCell& hemocell){
       WBCList.push_back(cell->second);
 
     } 
+  }
+  if(CTCList.empty()){
+    return;
   }
 
   for(int i = 0; i<WBCList.size(); i++)
@@ -908,10 +909,28 @@ void HemoCellParticleField::determineImmuneResponseToCTC(HemoCell& hemocell){
     for(int i = 0; i<CTCList.size(); i++)
     {
       hemo::Array<T,3> CTCPos = CTCList[i].position;
-      double distance = std::pow((CTCPos[0] - WBCPos[0])*(CTCPos[0] - WBCPos[0])+ (CTCPos[1] - WBCPos[1])*(CTCPos[1] - WBCPos[1]) + (CTCPos[2] - WBCPos[2])*(CTCPos[2] - WBCPos[2]),1/2);
+      T x = CTCPos[0] - WBCPos[0];
+      T y = CTCPos[1] - WBCPos[1];
+      T z = CTCPos[2] - WBCPos[2];
+      T distance = std::sqrt(x*x+y*y+z*z);
+      
+      //std::cout<<"DISTANCE TO CTC: "<<distance<< " {"<< x*x << " " <<y*y << " "<< z*z<<"}" << std::endl; //WBC and CTC touch at approx 15 distance away
+      if (distance < 15.5)
+      {
+        for (HemoCellParticle &particle : particles)
+        {
+          if(particle.sv.cellId == CTCList[i].base_cell_id){
+            particle.tag = 1;
+          }
+        }
+        removeParticles(1);
+        lpc_up_to_date = false;
+        pg_up_to_date = false;
+      }
+
       if(distance < minDistance){
         minDistance = distance;
-        cellId = CTCList[i].base_cell_id; //is this gonna work? if it doesn't i can just stuff the loop here up in the map loop
+        cellId = CTCList[i].base_cell_id;
       }
     }
     nearestCTC.push_back(info_per_cell[cellId]);
@@ -923,10 +942,12 @@ void HemoCellParticleField::determineImmuneResponseToCTC(HemoCell& hemocell){
     hemo::Array<T,3> CTCPos = nearestCTC[i].position;
     hemo::Array<T,3> CTCVelocity = nearestCTC[i].velocity;
     hemo::Array<T,3> CTCDirection = {CTCPos[0] - WBCPos[0], CTCPos[1] - WBCPos[1], CTCPos[2] - WBCPos[2]};
-    for(HemoCellParticle particle: particles){
+    //std::cout<<"VECTOR: " << CTCDirection[0] << " " << CTCDirection[1] << " " << CTCDirection[2] << " " <<std::endl;
+    for(HemoCellParticle & particle: particles){
       if(particle.sv.cellId == WBCList[i].base_cell_id)
       {
-        particle.sv.v += CTCDirection;
+        particle.sv.v = 0.0005*CTCDirection;
+        
       }
     }
 
