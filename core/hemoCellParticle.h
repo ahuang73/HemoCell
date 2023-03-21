@@ -47,7 +47,6 @@ public:
     hemo::Array<T,3> position;
     hemo::Array<T,3> force;
     hemo::Array<T,3> force_repulsion;
-    std::vector<T> concentration;
 #if HEMOCELL_MATERIAL_INTEGRATION == 2
     hemo::Array<T,3> vPrevious;
 #endif
@@ -121,7 +120,6 @@ public:
     sv.vertexId = vertexId_;
     sv.celltype=celltype_;
     sv.restime= 0.0;
-    sv.concentration = {0};
 #ifdef SOLIDIFY_MECHANICS
     sv.solidify = false;
 #endif

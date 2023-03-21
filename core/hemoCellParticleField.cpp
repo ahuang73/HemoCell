@@ -577,7 +577,6 @@ void HemoCellParticleField::advanceParticles() {
 	(y >= box.y0) && (y <= box.y1) &&
 	(z >= box.z0) && (z <= box.z1)) {
       if (atomicLattice->get(x,y,z).getDynamics().isBoundary()) {
-        std::cout<<"boundary: " << x << " " << y << " " << z<< " CELL ID & POS:" << particle.sv.cellId << particle.sv.position[0] << " " << particle.sv.position[1] << " " <<particle.sv.position[2] <<   std::endl;
         particle.tag = 1;
       }
     }
@@ -955,10 +954,6 @@ void HemoCellParticleField::determineImmuneResponseToCTC(HemoCell& hemocell){
 
 
   
-  
-}
-//returns nearest cellid
-plint findNearestCTC(plint WBCid){
   
 }
 
