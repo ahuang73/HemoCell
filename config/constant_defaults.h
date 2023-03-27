@@ -108,6 +108,7 @@ FORCE_LIMIT sets the allowed maximal force coming from the constitutive model (i
 #define OUTPUT_FORCE_VISC 25
 #define OUTPUT_FORCE_INNER_LINK 26
 #define OUTPUT_FORCE_REPULSION 27
+#define OUTPUT_FORCE_ADHESION 28
 #define OUTPUT_TRIANGLES 3
 #define OUTPUT_VELOCITY 4
 #define OUTPUT_DENSITY 5

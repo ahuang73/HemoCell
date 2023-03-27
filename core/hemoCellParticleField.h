@@ -82,6 +82,7 @@ public:
     void syncEnvelopes();
     void populateBoundaryParticles();
     void applyBoundaryRepulsionForce();
+    void applyBoundaryAdhesionForce(HemoCell &hemocell);
     void populateBindingSites(plb::Box3D & domain);
 
     T eigenValueFromCell(plb::Cell<T,DESCRIPTOR> & cell);
@@ -120,7 +121,7 @@ public:
     void outputForceLink   (plb::Box3D,vector<vector<T>>&, pluint, std::string&);
     void outputForceVisc    (plb::Box3D,vector<vector<T>>&, pluint, std::string&);
     void outputForceRepulsion  (plb::Box3D,vector<vector<T>>&, pluint, std::string&);
-    void outputConcentration  (plb::Box3D,vector<vector<T>>&, pluint, std::string&);
+    void outputForceAdhesion  (plb::Box3D,vector<vector<T>>&, pluint, std::string&);
     
     void outputTriangles   (plb::Box3D,vector<vector<plint>>&, pluint, std::string&);
     void outputInnerLinks   (plb::Box3D,vector<vector<plint>>&, pluint, std::string&);
@@ -164,6 +165,8 @@ private:
   bool ppc_up_to_date = false;
   bool preinlet_ppc_up_to_date = false;
   bool pg_up_to_date = false;
+  vector<vector<float>> bonds;
+  vector<vector<float>> bonds2;
 public:
   void invalidate_lpc() { lpc_up_to_date = false;};
   void invalidate_ppt() { ppt_up_to_date = false;};

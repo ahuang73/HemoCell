@@ -606,6 +606,22 @@ void HemoCellFields::applyRepulsionForce() {
   global.statistics.getCurrent().stop();
 }
 
+void HemoCellFields::HemoBoundaryAdhesionForce::processGenericBlocks(Box3D domain, std::vector<AtomicBlock3D*> blocks) {
+    dynamic_cast<HemoCellParticleField*>(blocks[0])->applyBoundaryAdhesionForce(hemocell);
+}
+
+
+void HemoCellFields::applyBoundaryAdhesionForce() {
+  global.statistics.getCurrent()["boundaryAdhesionForce"].start();
+
+  vector<MultiBlock3D*>wrapper;
+  wrapper.push_back(immersedParticles);
+  HemoBoundaryAdhesionForce * fnct = new HemoBoundaryAdhesionForce(hemocell);
+  applyProcessingFunctional(fnct,immersedParticles->getBoundingBox(),wrapper);
+
+  global.statistics.getCurrent().stop();
+}
+
 void HemoCellFields::HemoBoundaryRepulsionForce::processGenericBlocks(Box3D domain, std::vector<AtomicBlock3D*> blocks) {
     dynamic_cast<HemoCellParticleField*>(blocks[0])->applyBoundaryRepulsionForce();
 }
@@ -786,6 +802,7 @@ HemoCellFields::HemoAdvanceParticles *     HemoCellFields::HemoAdvanceParticles:
 HemoCellFields::HemoApplyConstitutiveModel * HemoCellFields::HemoApplyConstitutiveModel::clone() const { return new HemoCellFields::HemoApplyConstitutiveModel(*this);}
 HemoCellFields::HemoSyncEnvelopes *        HemoCellFields::HemoSyncEnvelopes::clone() const { return new HemoCellFields::HemoSyncEnvelopes(*this);}
 HemoCellFields::HemoRepulsionForce *        HemoCellFields::HemoRepulsionForce::clone() const { return new HemoCellFields::HemoRepulsionForce(*this);}
+HemoCellFields::HemoBoundaryAdhesionForce *        HemoCellFields::HemoBoundaryAdhesionForce::clone() const { return new HemoCellFields::HemoBoundaryAdhesionForce(*this);}
 HemoCellFields::HemoBoundaryRepulsionForce *        HemoCellFields::HemoBoundaryRepulsionForce::clone() const { return new HemoCellFields::HemoBoundaryRepulsionForce(*this);}
 HemoCellFields::HemoDeleteIncompleteCells *        HemoCellFields::HemoDeleteIncompleteCells::clone() const { return new HemoCellFields::HemoDeleteIncompleteCells(*this);}
 HemoCellFields::HemoConcentration *        HemoCellFields::HemoConcentration::clone() const { return new HemoCellFields::HemoConcentration(*this);}

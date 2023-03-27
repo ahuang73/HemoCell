@@ -244,6 +244,10 @@ void HemoCell::writeOutput() {
     cellfields->applyBoundaryRepulsionForce();
   }
 
+  if(boundaryAdhesionEnabled) {
+    cellfields->applyBoundaryAdhesionForce();
+  }
+
   // update larger lattice envelopes
   lattice->getMultiBlockManagement().changeEnvelopeWidth(2);
   lattice->signalPeriodicity();
@@ -316,6 +320,9 @@ void HemoCell::iterate() {
   // ### 1 ### Particle Force to Fluid
   if(repulsionEnabled && iter % cellfields->repulsionTimescale == 0) {
     cellfields->applyRepulsionForce();
+  }
+  if(boundaryAdhesionEnabled && iter % cellfields->boundaryAdhesionTimescale == 0) {
+    cellfields->applyBoundaryAdhesionForce();
   }
   if(boundaryRepulsionEnabled && iter % cellfields->boundaryRepulsionTimescale == 0) {
     cellfields->applyBoundaryRepulsionForce();
@@ -453,6 +460,21 @@ void HemoCell::enableBoundaryParticles(T boundaryRepulsionConstant, T boundaryRe
   cellfields->boundaryRepulsionCutoff = boundaryRepulsionCutoff*(1e-6/param::dx);
   cellfields->boundaryRepulsionTimescale = timestep;
   boundaryRepulsionEnabled = true;
+}
+
+
+void HemoCell::enableBoundaryParticles(T boundaryRepulsionConstant, T boundaryRepulsionCutoff, T boundaryAdhesionConstant, T boundaryAdhesionCutoff, unsigned int timestep) {
+  cellfields->populateBoundaryParticles();
+  hlog << "(HemoCell) (Repulsion) Setting boundary repulsion constant to " << boundaryRepulsionConstant << ". boundary repulsionCutoff to" << boundaryRepulsionCutoff << " µm" << endl;
+  hlogfile << "(HemoCell) (Repulsion) Enabling boundary repulsion" << endl;
+  cellfields->boundaryRepulsionConstant = boundaryRepulsionConstant;
+  cellfields->boundaryRepulsionCutoff = boundaryRepulsionCutoff*(1e-6/param::dx);
+  cellfields->boundaryRepulsionTimescale = timestep;
+  boundaryRepulsionEnabled = true;
+  cellfields->boundaryAdhesionTimescale = timestep;
+  cellfields->boundaryAdhesionConstant = boundaryAdhesionConstant;
+  cellfields->boundaryAdhesionCutoff = boundaryAdhesionCutoff*(1e-6/param::dx);
+  boundaryAdhesionEnabled=true;
 }
 
 void HemoCell::initializeLattice(MultiBlockManagement3D const & management) {
@@ -630,7 +652,14 @@ void HemoCell::sanityCheck() {
        exit(1);
     }
   }
-  
+
+  if (boundaryAdhesionEnabled) {
+    if (cellfields->boundaryAdhesionTimescale%cellfields->particleVelocityUpdateTimescale!=0) {
+     hlog << "(HemoCell) Error, Particle velocity timescale separation cannot divide this adhesion timescale separation, exiting ..." <<endl;
+     exit(1);
+    }
+  }
+
   if (global.enableInteriorViscosity) {
     if (cellfields->interiorViscosityEntireGridTimescale%cellfields->particleVelocityUpdateTimescale!=0 || 
         cellfields->interiorViscosityTimescale%cellfields->particleVelocityUpdateTimescale!=0) {

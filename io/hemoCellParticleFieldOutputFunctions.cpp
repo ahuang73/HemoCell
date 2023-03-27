@@ -38,6 +38,7 @@ void HemoCellParticleField::AddOutputMap() {
   outputFunctionMap[OUTPUT_VERTEX_ID] = &HemoCellParticleField::outputVertexId;
   outputFunctionMap[OUTPUT_CELL_ID] = &HemoCellParticleField::outputCellId;
   outputFunctionMap[OUTPUT_FORCE_REPULSION] = &HemoCellParticleField::outputForceRepulsion;
+  outputFunctionMap[OUTPUT_FORCE_ADHESION] = &HemoCellParticleField::outputForceAdhesion;
   outputFunctionMap[OUTPUT_RES_TIME] = &HemoCellParticleField::outputResTime;
 
 }
@@ -302,6 +303,35 @@ void HemoCellParticleField::outputForceRepulsion(Box3D domain,vector<vector<T>>&
       tf.push_back(sparticle->sv.force_repulsion[0]);
       tf.push_back(sparticle->sv.force_repulsion[1]);
       tf.push_back(sparticle->sv.force_repulsion[2]);
+      output.push_back(tf);
+    }
+  }
+  if(cellFields->hemocell.outputInSiUnits) {
+    for (vector<T> & tf : output) {
+      for (T & n : tf) {
+        n = n * param::df;
+      }
+    }
+  }
+}
+
+void HemoCellParticleField::outputForceAdhesion(Box3D domain,vector<vector<T>>& output, pluint ctype, std::string & name) {
+  name = "Adhesion force";
+  output.clear();
+  HemoCellParticle * sparticle;
+  const map<int,bool> & lpc = get_lpc();
+  const map<int,vector<int>> & particles_per_cell = get_particles_per_cell();
+  for ( const auto &lpc_it : lpc ) {
+    int cellid = lpc_it.first;
+    if (particles_per_cell.at(cellid)[0] == -1) { continue; }
+    if (ctype != particles[particles_per_cell.at(cellid)[0]].sv.celltype) {continue;}
+    for (pluint i = 0; i < particles_per_cell.at(cellid).size(); i++) {
+      sparticle = &particles[particles_per_cell.at(cellid)[i]];
+
+      vector<T> tf;
+      tf.push_back(sparticle->sv.force_adhesion[0]);
+      tf.push_back(sparticle->sv.force_adhesion[1]);
+      tf.push_back(sparticle->sv.force_adhesion[2]);
       output.push_back(tf);
     }
   }

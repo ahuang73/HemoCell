@@ -61,13 +61,13 @@ void GatherParticleForce::processGenericBlocks(Box3D domain, std::vector<AtomicB
     
     if (localParticles.size() > 0) {
       //initial value
-      hemo::Array<T,3> force_vec = localParticles[0]->sv.force +localParticles[0]->sv.force_repulsion;
+       hemo::Array<T,3> force_vec = localParticles[0]->sv.force +localParticles[0]->sv.force_repulsion+localParticles[0]->sv.force_adhesion;
       T force = sqrt(force_vec[0]*force_vec[0]+force_vec[1]*force_vec[1]+force_vec[2]*force_vec[2]);
       T min=force,max=force,avg=0.;
 
 
       for (const HemoCellParticle * particle : localParticles) {
-        force_vec = particle->sv.force + particle->sv.force_repulsion;
+        force_vec = particle->sv.force + particle->sv.force_repulsion+particle->sv.force_adhesion;
         force = sqrt(force_vec[0]*force_vec[0]+force_vec[1]*force_vec[1]+force_vec[2]*force_vec[2]);
         min = min > force ? force : min;
         max = max < force ? force : max;
