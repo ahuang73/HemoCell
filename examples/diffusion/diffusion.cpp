@@ -26,8 +26,6 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    plb::Array<T, DESCRIPTOR<T>::d> forceOrientation(T(), T(), (T)1);
-
     // The first argument is the config.xml location, the second and third argument
     // are necessary as a passthrough for the Palabos initialization
     HemoCell hemocell(argv[1], argc, argv);
@@ -115,10 +113,10 @@ int main(int argc, char *argv[])
     hemocell.addCellType<PltSimpleModel>("PLT", ELLIPSOID_FROM_SPHERE);
     hemocell.setMaterialTimeScaleSeparation("PLT", (*cfg)["ibm"]["stepMaterialEvery"].read<int>());
 
-    hemocell.addCellType<PltSimpleModel>("WBC", ELLIPSOID_FROM_SPHERE);
+    hemocell.addCellType<WbcHighOrderModel>("WBC", WBC_SPHERE);
     hemocell.setMaterialTimeScaleSeparation("WBC", (*cfg)["ibm"]["stepMaterialEvery"].read<int>());
     
-    hemocell.addCellType<PltSimpleModel>("CTC", ELLIPSOID_FROM_SPHERE);
+    hemocell.addCellType<WbcHighOrderModel>("CTC", WBC_SPHERE);
     hemocell.setMaterialTimeScaleSeparation("CTC", (*cfg)["ibm"]["stepMaterialEvery"].read<int>());
 
     vector<int> outputs = {OUTPUT_POSITION, OUTPUT_TRIANGLES, OUTPUT_FORCE, OUTPUT_FORCE_VOLUME, OUTPUT_FORCE_BENDING, OUTPUT_FORCE_LINK, OUTPUT_FORCE_AREA, OUTPUT_FORCE_VISC, OUTPUT_FORCE_ADHESION, OUTPUT_FORCE_REPULSION};

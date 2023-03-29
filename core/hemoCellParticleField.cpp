@@ -875,7 +875,7 @@ namespace hemo
           P_on = (1 - exp(-1 * k_on * deltaT));                                                                                                                           \
           P_off = (1 - exp(-1 * k_off * deltaT));                                                                                                                         \
           float alpha = 1.5;                                                                                                                                              \
-          float de = 15 * kbT;                                                                                                                                            \
+          float de = 100 * kbT;                                                                                                                                            \
           const hemo::Array<T, 3> rfm = 2 * alpha * de * 1e6 * (exp(2 * alpha * (0.1 - distance * 0.5)) - exp(alpha * (0.1 - distance * 0.5))) * (dv / distance) / df2;   \
           if (distance < 0.4)                                                                                                                                             \
           {                                                                                                                                                               \
@@ -1160,7 +1160,7 @@ namespace hemo
         T distance = std::sqrt(x * x + y * y + z * z);
 
         // std::cout<<"DISTANCE TO CTC: "<<distance<< " {"<< x*x << " " <<y*y << " "<< z*z<<"}" << std::endl; //WBC and CTC touch at approx 15 distance away
-        if (distance < 2.5)
+        if (distance < 15.5)
         {
           return;
           for (HemoCellParticle &particle : particles)
