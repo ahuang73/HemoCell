@@ -17,52 +17,6 @@
 
 using namespace std;
 using namespace hemo;
-template <
-    typename T, template <typename NSU> class nsDescriptor,
-    template <typename ADU> class adDescriptor>
-struct IniTemperatureRayleighBenardProcessor3D :
-    public BoxProcessingFunctional3D_L<T, adDescriptor> {
-    IniTemperatureRayleighBenardProcessor3D(
-        RayleighBenardFlowParam<T, nsDescriptor, adDescriptor> parameters_) :
-        parameters(parameters_)
-    { }
-    virtual void process(Box3D domain, BlockLattice3D<T, adDescriptor> &adLattice)
-    {
-        Dot3D absoluteOffset = adLattice.getLocation();
-
-        for (plint iX = domain.x0; iX <= domain.x1; ++iX) {
-            for (plint iY = domain.y0; iY <= domain.y1; ++iY) {
-                for (plint iZ = domain.z0; iZ <= domain.z1; ++iZ) {
-                    plint absoluteZ = absoluteOffset.z + iZ;
-
-                    T temperature = parameters.getHotTemperature()
-                                    - parameters.getDeltaTemperature() / (T)(parameters.getNz() - 1)
-                                          * (T)absoluteZ;
-
-                    plb::Array<T, adDescriptor<T>::d> jEq(0., 0., 0.);
-                    adLattice.get(iX, iY, iZ).defineDensity(temperature);
-                    iniCellAtEquilibrium(adLattice.get(iX, iY, iZ), temperature, jEq); //i think it's this that removes the RBCs OR its applyprocessingfunctinoal
-                }
-            }
-        }
-    }
-    virtual IniTemperatureRayleighBenardProcessor3D<T, nsDescriptor, adDescriptor> *clone() const
-    {
-        return new IniTemperatureRayleighBenardProcessor3D<T, nsDescriptor, adDescriptor>(*this);
-    }
-
-    virtual void getTypeOfModification(std::vector<modif::ModifT> &modified) const
-    {
-        modified[0] = modif::staticVariables;
-    }
-    virtual BlockDomain::DomainT appliesTo() const
-    {
-        return BlockDomain::bulkAndEnvelope;
-    }
-
-private:
-    RayleighBenardFlowParam<T, nsDescriptor, adDescriptor> parameters;
-};
 
 int main(int argc, char *argv[])
 {
@@ -72,15 +26,6 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    const T lx = 2.0;
-    const T ly = 2.0;
-    const T lz = 1.0;
-    const T uMax = 0.1;
-    const T Pr = 1.0;
-    T Ra = 0.;
-    const T hotTemperature = 1.0;
-    const T coldTemperature = 0.0;
-    const plint resolution = 30;
     plb::Array<T, DESCRIPTOR<T>::d> forceOrientation(T(), T(), (T)1);
 
     // The first argument is the config.xml location, the second and third argument
@@ -129,6 +74,7 @@ int main(int argc, char *argv[])
     defineDynamics(*hemocell.lattice, bottomChannel, new BounceBack<T, DESCRIPTOR>);
     defineDynamics(*hemocell.lattice, backChannel, new BounceBack<T, DESCRIPTOR>);
     defineDynamics(*hemocell.lattice, frontChannel, new BounceBack<T, DESCRIPTOR>);
+    
     // Disable statistics to run faster
     hemocell.lattice->toggleInternalStatistics(false);
     // Equilibrate everything
@@ -162,17 +108,20 @@ int main(int argc, char *argv[])
     // Only update the integrated velocity (from the fluid field to the particles)
     // every X timesteps.
     hemocell.setParticleVelocityUpdateTimeScaleSeparation(5);
+    hemocell.setRepulsion((*cfg)["domain"]["kRep"].read<T>(), (*cfg)["domain"]["RepCutoff"].read<T>());
+    hemocell.setRepulsionTimeScaleSeperation((*cfg)["ibm"]["stepMaterialEvery"].read<int>());
+    
 
     hemocell.addCellType<PltSimpleModel>("PLT", ELLIPSOID_FROM_SPHERE);
     hemocell.setMaterialTimeScaleSeparation("PLT", (*cfg)["ibm"]["stepMaterialEvery"].read<int>());
 
-    hemocell.addCellType<WbcHighOrderModel>("WBC", WBC_SPHERE);
+    hemocell.addCellType<PltSimpleModel>("WBC", ELLIPSOID_FROM_SPHERE);
     hemocell.setMaterialTimeScaleSeparation("WBC", (*cfg)["ibm"]["stepMaterialEvery"].read<int>());
     
-    hemocell.addCellType<WbcHighOrderModel>("CTC", WBC_SPHERE);
+    hemocell.addCellType<PltSimpleModel>("CTC", ELLIPSOID_FROM_SPHERE);
     hemocell.setMaterialTimeScaleSeparation("CTC", (*cfg)["ibm"]["stepMaterialEvery"].read<int>());
 
-    vector<int> outputs = {OUTPUT_POSITION, OUTPUT_TRIANGLES, OUTPUT_FORCE, OUTPUT_FORCE_VOLUME, OUTPUT_FORCE_BENDING, OUTPUT_FORCE_LINK, OUTPUT_FORCE_AREA, OUTPUT_FORCE_VISC};
+    vector<int> outputs = {OUTPUT_POSITION, OUTPUT_TRIANGLES, OUTPUT_FORCE, OUTPUT_FORCE_VOLUME, OUTPUT_FORCE_BENDING, OUTPUT_FORCE_LINK, OUTPUT_FORCE_AREA, OUTPUT_FORCE_VISC, OUTPUT_FORCE_ADHESION, OUTPUT_FORCE_REPULSION};
     hemocell.setOutputs("RBC", outputs);
     hemocell.setOutputs("PLT", outputs);
     hemocell.setOutputs("WBC", outputs);
@@ -183,10 +132,10 @@ int main(int argc, char *argv[])
 
     hemocell.setSourceOutputs({OUTPUT_DENSITY});
 
-    OnLatticeAdvectionDiffusionBoundaryCondition3D<T, CEPAC_DESCRIPTOR> *diffusionBoundary = createLocalAdvectionDiffusionBoundaryCondition3D<T, CEPAC_DESCRIPTOR>();
-    // diffusionBoundary->addTemperatureBoundary2N(bottomChannel, *hemocell.cellfields->sourceLattice);
-    // diffusionBoundary->addTemperatureBoundary2P(topChannel, *hemocell.cellfields->sourceLattice);
-    // setBoundaryDensity(*hemocell.cellfields->sourceLattice, topChannel, (T)0.5);
+    // OnLatticeAdvectionDiffusionBoundaryCondition3D<T, CEPAC_DESCRIPTOR> *diffusionBoundary = createLocalAdvectionDiffusionBoundaryCondition3D<T, CEPAC_DESCRIPTOR>();
+    // // diffusionBoundary->addTemperatureBoundary2N(bottomChannel, *hemocell.cellfields->sourceLattice);
+    // // diffusionBoundary->addTemperatureBoundary2P(topChannel, *hemocell.cellfields->sourceLattice);
+    // // setBoundaryDensity(*hemocell.cellfields->sourceLattice, topChannel, (T)0.5);
 
     
 
@@ -206,7 +155,7 @@ int main(int argc, char *argv[])
     
 
    
-    hemocell.enableBoundaryParticles((*cfg)["domain"]["kRep"].read<T>(), (*cfg)["domain"]["BRepCutoff"].read<T>(), (*cfg)["ibm"]["stepMaterialEvery"].read<int>());
+    hemocell.enableBoundaryParticles((*cfg)["domain"]["BkRep"].read<T>(), (*cfg)["domain"]["BRepCutoff"].read<T>(),(*cfg)["domain"]["BkAdh"].read<T>(), (*cfg)["domain"]["BAdhCutoff"].read<T>(),(*cfg)["ibm"]["stepMaterialEvery"].read<int>());
 
     // Turn on periodicity in the X direction
     hemocell.setSystemPeriodicity(0, true);

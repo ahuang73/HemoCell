@@ -834,6 +834,74 @@ namespace hemo
     }                                                                                          \
   }
 
+#define inner_loop2                                                                                                                                                       \
+  bool stochastic_model = 1;                                                                                                                                              \
+  const int &l_index = grid_index(x, y, z);                                                                                                                               \
+  const int &n_index = grid_index(xx, yy, zz);                                                                                                                            \
+  for (unsigned int i = 0; i < particle_grid_size[l_index]; i++)                                                                                                          \
+  {                                                                                                                                                                       \
+    for (unsigned int j = 0; j < particle_grid_size[n_index]; j++)                                                                                                        \
+    {                                                                                                                                                                     \
+      HemoCellParticle &lParticle = particles[particle_grid[l_index][i]];                                                                                                 \
+      HemoCellParticle &nParticle = particles[particle_grid[n_index][j]];                                                                                                 \
+      if (&nParticle == &lParticle)                                                                                                                                       \
+      {                                                                                                                                                                   \
+        continue;                                                                                                                                                         \
+      }                                                                                                                                                                   \
+      if (lParticle.sv.cellId == nParticle.sv.cellId)                                                                                                                     \
+      {                                                                                                                                                                   \
+        continue;                                                                                                                                                         \
+      }                                                                                                                                                                   \
+      const hemo::Array<T, 3> dv = lParticle.sv.position - nParticle.sv.position;                                                                                         \
+      const T distance = sqrt(dv[0] * dv[0] + dv[1] * dv[1] + dv[2] * dv[2]);                                                                                             \
+      float dist2 = distance * 5 * pow(10, -7);                                                                                                                           \
+      float df2 = 6.40625 * pow(10, -9);                                                                                                                                  \
+      pluint cells1 = lParticle.sv.celltype;                                                                                                                              \
+      pluint cells2 = nParticle.sv.celltype;                                                                                                                              \
+      if (distance < 2)                                                                                                                                                   \
+      {                                                                                                                                                                   \
+        if (stochastic_model)                                                                                                                                             \
+        {                                                                                                                                                                 \
+          float k_on0 = 1000;                                                                                                                                             \
+          float k_off0 = 1;                                                                                                                                               \
+          float sigma_on = 0.0000000005;                                                                                                                                  \
+          float sigma_off = 0.00000000005;                                                                                                                                \
+          float kbT = 4.28 * (pow(10, -21));                                                                                                                              \
+          float deltaT = 0.0000001;                                                                                                                                       \
+          float P_on;                                                                                                                                                     \
+          float P_off;                                                                                                                                                    \
+          float k_on = k_on0 * exp((-1 * sigma_on * dist2 * dist2) / (2 * kbT));                                                                                          \
+          float k_off = k_off0 * exp(((sigma_off - sigma_on) * dist2 * dist2) / (2 * kbT));                                                                               \
+          P_on = (1 - exp(-1 * k_on * deltaT));                                                                                                                           \
+          P_off = (1 - exp(-1 * k_off * deltaT));                                                                                                                         \
+          float alpha = 1.5;                                                                                                                                              \
+          float de = 15 * kbT;                                                                                                                                            \
+          const hemo::Array<T, 3> rfm = 2 * alpha * de * 1e6 * (exp(2 * alpha * (0.1 - distance * 0.5)) - exp(alpha * (0.1 - distance * 0.5))) * (dv / distance) / df2;   \
+          if (distance < 0.4)                                                                                                                                             \
+          {                                                                                                                                                               \
+            const hemo::Array<T, 3> rfm2 = 4 / (distance * 0.5e-6) * 0.00001 * kbT * (6 * pow(0.4 / distance, 6) - 12 * pow(0.4 / distance, 12)) * (dv / distance) / df2; \
+            lParticle.sv.force_repulsion = lParticle.sv.force_repulsion - 1 * rfm2;                                                                                       \
+            nParticle.sv.force_repulsion = nParticle.sv.force_repulsion + 1 * (rfm2);                                                                                     \
+          }                                                                                                                                                               \
+          if ((cells1 == 2 && cells2 == 1))                                                                                                                               \
+          {                                                                                                                                                               \
+            lParticle.sv.force_repulsion = lParticle.sv.force_repulsion + 1 * rfm / 1;                                                                                    \
+            nParticle.sv.force_repulsion = nParticle.sv.force_repulsion - (rfm / 5);                                                                                      \
+          }                                                                                                                                                               \
+          else if ((cells1 == 1 && cells2 == 2))                                                                                                                          \
+          {                                                                                                                                                               \
+            lParticle.sv.force_repulsion = lParticle.sv.force_repulsion + (rfm / 5);                                                                                      \
+            nParticle.sv.force_repulsion = nParticle.sv.force_repulsion - 1 * rfm / 1;                                                                                    \
+          }                                                                                                                                                               \
+          else if ((cells1 == 1 && cells2 == 1))                                                                                                                          \
+          {                                                                                                                                                               \
+            lParticle.sv.force_repulsion = lParticle.sv.force_repulsion + (rfm / 20);                                                                                     \
+            nParticle.sv.force_repulsion = nParticle.sv.force_repulsion - (rfm / 20);                                                                                     \
+          }                                                                                                                                                               \
+        }                                                                                                                                                                 \
+      }                                                                                                                                                                   \
+    }                                                                                                                                                                     \
+  }
   void HemoCellParticleField::applyRepulsionForce(bool forced)
   {
     const T r_const = cellFields->repulsionConstant;
@@ -860,7 +928,7 @@ namespace hemo
           {
             for (int zz = z; zz <= z + 1; zz++)
             {
-              inner_loop
+              inner_loop2
             }
           }
           // 1, 0, 0
@@ -885,7 +953,7 @@ namespace hemo
               {
                 continue;
               }
-              inner_loop
+              inner_loop2
             }
           }
           xx = x;
@@ -895,7 +963,7 @@ namespace hemo
             continue;
           }
           // 0, 1,-1
-          inner_loop
+          inner_loop2
         }
       }
     }
@@ -1092,8 +1160,9 @@ namespace hemo
         T distance = std::sqrt(x * x + y * y + z * z);
 
         // std::cout<<"DISTANCE TO CTC: "<<distance<< " {"<< x*x << " " <<y*y << " "<< z*z<<"}" << std::endl; //WBC and CTC touch at approx 15 distance away
-        if (distance < 15.5)
+        if (distance < 2.5)
         {
+          return;
           for (HemoCellParticle &particle : particles)
           {
             if (particle.sv.cellId == CTCList[i].base_cell_id)
