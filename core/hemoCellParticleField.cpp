@@ -875,7 +875,7 @@ namespace hemo
           P_on = (1 - exp(-1 * k_on * deltaT));                                                                                                                           \
           P_off = (1 - exp(-1 * k_off * deltaT));                                                                                                                         \
           float alpha = 1.5;                                                                                                                                              \
-          float de = 100 * kbT;                                                                                                                                            \
+          float de = 15 * kbT; /*original value was 15*kbT*/                                                                                                              \
           const hemo::Array<T, 3> rfm = 2 * alpha * de * 1e6 * (exp(2 * alpha * (0.1 - distance * 0.5)) - exp(alpha * (0.1 - distance * 0.5))) * (dv / distance) / df2;   \
           if (distance < 0.4)                                                                                                                                             \
           {                                                                                                                                                               \
@@ -897,6 +897,21 @@ namespace hemo
           {                                                                                                                                                               \
             lParticle.sv.force_repulsion = lParticle.sv.force_repulsion + (rfm / 20);                                                                                     \
             nParticle.sv.force_repulsion = nParticle.sv.force_repulsion - (rfm / 20);                                                                                     \
+          }                                                                                                                                                               \
+          else if ((cells1 == 2 && cells2 == 2))                                                                                                                          \
+          {                                                                                                                                                               \
+            lParticle.sv.force_repulsion = lParticle.sv.force_repulsion + (rfm);                                                                                          \
+            nParticle.sv.force_repulsion = nParticle.sv.force_repulsion - (rfm);                                                                                          \
+          }                                                                                                                                                               \
+          else if ((cells1 == 2 && cells2 == 3))                                                                                                                          \
+          {                                                                                                                                                               \
+            lParticle.sv.force_repulsion = lParticle.sv.force_repulsion + (rfm);                                                                                          \
+            nParticle.sv.force_repulsion = nParticle.sv.force_repulsion - (rfm);                                                                                          \
+          }                                                                                                                                                               \
+          else if ((cells1 == 3 && cells2 == 2))                                                                                                                          \
+          {                                                                                                                                                               \
+            lParticle.sv.force_repulsion = lParticle.sv.force_repulsion + (rfm);                                                                                          \
+            nParticle.sv.force_repulsion = nParticle.sv.force_repulsion - (rfm);                                                                                          \
           }                                                                                                                                                               \
         }                                                                                                                                                                 \
       }                                                                                                                                                                   \
@@ -1160,20 +1175,20 @@ namespace hemo
         T distance = std::sqrt(x * x + y * y + z * z);
 
         // std::cout<<"DISTANCE TO CTC: "<<distance<< " {"<< x*x << " " <<y*y << " "<< z*z<<"}" << std::endl; //WBC and CTC touch at approx 15 distance away
-        if (distance < 15.5)
-        {
-          return;
-          for (HemoCellParticle &particle : particles)
-          {
-            if (particle.sv.cellId == CTCList[i].base_cell_id)
-            {
-              particle.tag = 1;
-            }
-          }
-          removeParticles(1);
-          lpc_up_to_date = false;
-          pg_up_to_date = false;
-        }
+        // if (distance < 15.5)
+        // {
+        //   return;
+        //   for (HemoCellParticle &particle : particles)
+        //   {
+        //     if (particle.sv.cellId == CTCList[i].base_cell_id)
+        //     {
+        //       particle.tag = 1;
+        //     }
+        //   }
+        //   removeParticles(1);
+        //   lpc_up_to_date = false;
+        //   pg_up_to_date = false;
+        // }
 
         if (distance < minDistance)
         {
@@ -1183,6 +1198,44 @@ namespace hemo
       }
       nearestCTC.push_back(info_per_cell[cellId]);
     }
+    for (int i = 0; i < CTCList.size(); i++)
+    {
+      hemo::Array<T, 3> CTCPos = CTCList[i].position;
+      plint numberOfWBCContact = 0;
+      for (int i = 0; i < WBCList.size(); i++)
+      {
+        hemo::Array<T, 3> WBCPos = WBCList[i].position;
+        T x = WBCPos[0] - CTCPos[0];
+        T y = WBCPos[1] - CTCPos[1];
+        T z = WBCPos[2] - CTCPos[2];
+        T distance = std::sqrt(x * x + y * y + z * z);
+
+        // std::cout<<"DISTANCE TO CTC: "<<distance<< " {"<< x*x << " " <<y*y << " "<< z*z<<"}" << std::endl; //WBC and CTC touch at approx 15 distance away
+        if (distance <= 15.5)
+        {
+         
+          numberOfWBCContact++;
+          //std::cout<<"DISTANCE TO CTC: "<<distance<< " {"<< x*x << " " <<y*y << " "<< z*z<<"}" << " WBCCONTACT: " << numberOfWBCContact<< std::endl;
+        }
+      }
+      
+      T pCTCDeath = 1 - exp(-(numberOfWBCContact * numberOfWBCContact));
+      if (pCTCDeath > (T)rand() / (T)(RAND_MAX) )
+      {
+        std::cout<<"KILLING CTC" <<std::endl;
+        for (HemoCellParticle &particle : particles)
+        {
+          if (particle.sv.cellId == CTCList[i].base_cell_id)
+          {
+            particle.tag = 1;
+          }
+        }
+        removeParticles(1);
+        lpc_up_to_date = false;
+        pg_up_to_date = false;
+        
+      }
+    }
     for (int i = 0; i < WBCList.size(); i++)
     {
       hemo::Array<T, 3> WBCPos = WBCList[i].position;
@@ -1190,10 +1243,11 @@ namespace hemo
       hemo::Array<T, 3> CTCPos = nearestCTC[i].position;
       hemo::Array<T, 3> CTCVelocity = nearestCTC[i].velocity;
       hemo::Array<T, 3> CTCDirection = {CTCPos[0] - WBCPos[0], CTCPos[1] - WBCPos[1], CTCPos[2] - WBCPos[2]};
+      T CTCDistance = std::sqrt(CTCDirection[0]*CTCDirection[0] + CTCDirection[1]*CTCDirection[1] + CTCDirection[2]*CTCDirection[2]);
       // std::cout<<"VECTOR: " << CTCDirection[0] << " " << CTCDirection[1] << " " << CTCDirection[2] << " " <<std::endl;
       for (HemoCellParticle &particle : particles)
       {
-        if (particle.sv.cellId == WBCList[i].base_cell_id)
+        if (particle.sv.cellId == WBCList[i].base_cell_id && CTCDistance > 15.5)
         {
           particle.sv.v = 0.0005 * CTCDirection;
         }
