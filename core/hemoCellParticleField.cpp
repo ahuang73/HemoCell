@@ -1138,10 +1138,10 @@ namespace hemo
     map<int, CellInformation> info_per_cell;
     CellInformationFunctionals::calculateCellInformation(&hemocell, info_per_cell);
     HemoCellGatheringFunctional<CellInformation>::gather(info_per_cell);
-    unsigned char typeWBCnumber = (*cellFields)["WBC"]->ctype;
+    unsigned char typeNKCnumber = (*cellFields)["NKC"]->ctype;
     unsigned char typeCTCnumber = (*cellFields)["CTC"]->ctype;
 
-    vector<CellInformation> WBCList;
+    vector<CellInformation> NKCList;
     vector<CellInformation> CTCList;
     vector<CellInformation> nearestCTC;
 
@@ -1151,9 +1151,9 @@ namespace hemo
       {
         CTCList.push_back(cell->second);
       }
-      else if (cell->second.cellType == typeWBCnumber)
+      else if (cell->second.cellType == typeNKCnumber)
       {
-        WBCList.push_back(cell->second);
+        NKCList.push_back(cell->second);
       }
     }
     if (CTCList.empty())
@@ -1161,34 +1161,18 @@ namespace hemo
       return;
     }
 
-    for (int i = 0; i < WBCList.size(); i++)
+    for (int i = 0; i < NKCList.size(); i++)
     {
-      hemo::Array<T, 3> WBCPos = WBCList[i].position;
+      hemo::Array<T, 3> NKCPos = NKCList[i].position;
       double minDistance = INT_MAX;
       int cellId = 0;
       for (int i = 0; i < CTCList.size(); i++)
       {
         hemo::Array<T, 3> CTCPos = CTCList[i].position;
-        T x = CTCPos[0] - WBCPos[0];
-        T y = CTCPos[1] - WBCPos[1];
-        T z = CTCPos[2] - WBCPos[2];
+        T x = CTCPos[0] - NKCPos[0];
+        T y = CTCPos[1] - NKCPos[1];
+        T z = CTCPos[2] - NKCPos[2];
         T distance = std::sqrt(x * x + y * y + z * z);
-
-        // std::cout<<"DISTANCE TO CTC: "<<distance<< " {"<< x*x << " " <<y*y << " "<< z*z<<"}" << std::endl; //WBC and CTC touch at approx 15 distance away
-        // if (distance < 15.5)
-        // {
-        //   return;
-        //   for (HemoCellParticle &particle : particles)
-        //   {
-        //     if (particle.sv.cellId == CTCList[i].base_cell_id)
-        //     {
-        //       particle.tag = 1;
-        //     }
-        //   }
-        //   removeParticles(1);
-        //   lpc_up_to_date = false;
-        //   pg_up_to_date = false;
-        // }
 
         if (distance < minDistance)
         {
@@ -1201,25 +1185,25 @@ namespace hemo
     for (int i = 0; i < CTCList.size(); i++)
     {
       hemo::Array<T, 3> CTCPos = CTCList[i].position;
-      plint numberOfWBCContact = 0;
-      for (int i = 0; i < WBCList.size(); i++)
+      plint numberOfNKCContact = 0;
+      for (int i = 0; i < NKCList.size(); i++)
       {
-        hemo::Array<T, 3> WBCPos = WBCList[i].position;
-        T x = WBCPos[0] - CTCPos[0];
-        T y = WBCPos[1] - CTCPos[1];
-        T z = WBCPos[2] - CTCPos[2];
+        hemo::Array<T, 3> NKCPos = NKCList[i].position;
+        T x = NKCPos[0] - CTCPos[0];
+        T y = NKCPos[1] - CTCPos[1];
+        T z = NKCPos[2] - CTCPos[2];
         T distance = std::sqrt(x * x + y * y + z * z);
 
-        // std::cout<<"DISTANCE TO CTC: "<<distance<< " {"<< x*x << " " <<y*y << " "<< z*z<<"}" << std::endl; //WBC and CTC touch at approx 15 distance away
+        // std::cout<<"DISTANCE TO CTC: "<<distance<< " {"<< x*x << " " <<y*y << " "<< z*z<<"}" << std::endl; //NKC and CTC touch at approx 15 distance away
         if (distance <= 15.5)
         {
          
-          numberOfWBCContact++;
+          numberOfNKCContact++;
           //std::cout<<"DISTANCE TO CTC: "<<distance<< " {"<< x*x << " " <<y*y << " "<< z*z<<"}" << " WBCCONTACT: " << numberOfWBCContact<< std::endl;
         }
       }
       
-      T pCTCDeath = 1 - exp(-(numberOfWBCContact * numberOfWBCContact));
+      T pCTCDeath = 1 - exp(-(numberOfNKCContact * numberOfNKCContact));
       if (pCTCDeath > (T)rand() / (T)(RAND_MAX) )
       {
         std::cout<<"KILLING CTC" <<std::endl;
@@ -1236,18 +1220,19 @@ namespace hemo
         
       }
     }
-    for (int i = 0; i < WBCList.size(); i++)
+    //move towards CTC
+    for (int i = 0; i < NKCList.size(); i++)
     {
-      hemo::Array<T, 3> WBCPos = WBCList[i].position;
-      hemo::Array<T, 3> WBCVelocity = WBCList[i].velocity;
+      hemo::Array<T, 3> NKCPos = NKCList[i].position;
+      hemo::Array<T, 3> NKCVelocity = NKCList[i].velocity;
       hemo::Array<T, 3> CTCPos = nearestCTC[i].position;
       hemo::Array<T, 3> CTCVelocity = nearestCTC[i].velocity;
-      hemo::Array<T, 3> CTCDirection = {CTCPos[0] - WBCPos[0], CTCPos[1] - WBCPos[1], CTCPos[2] - WBCPos[2]};
+      hemo::Array<T, 3> CTCDirection = {CTCPos[0] - NKCPos[0], CTCPos[1] - NKCPos[1], CTCPos[2] - NKCPos[2]};
       T CTCDistance = std::sqrt(CTCDirection[0]*CTCDirection[0] + CTCDirection[1]*CTCDirection[1] + CTCDirection[2]*CTCDirection[2]);
       // std::cout<<"VECTOR: " << CTCDirection[0] << " " << CTCDirection[1] << " " << CTCDirection[2] << " " <<std::endl;
       for (HemoCellParticle &particle : particles)
       {
-        if (particle.sv.cellId == WBCList[i].base_cell_id && CTCDistance > 15.5)
+        if (particle.sv.cellId == NKCList[i].base_cell_id && CTCDistance > 15.5)
         {
           particle.sv.v = 0.0005 * CTCDirection;
         }
