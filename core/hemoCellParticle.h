@@ -58,6 +58,7 @@ public:
     unsigned int restime;
     
     unsigned char celltype;
+    int secreteCytokine = 0;
 
   
 #ifdef SOLIDIFY_MECHANICS

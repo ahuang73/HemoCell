@@ -1248,23 +1248,19 @@ namespace hemo
 
           if (hemocell->iter % 100 == 0)
           {
-            plint iX, iY, iZ = 0;
-            computeGridPosition(CTLPos, &iX, &iY, &iZ);
-            T currentDensity =hemocell->cellfields->sourceLattice->get(iX, iY, iZ).computeDensity();
-            T newDensity = 20000;
-            std::cout << "density 1 : " << hemocell->cellfields->sourceLattice->get(iX, iY, iZ).computeDensity() << std::endl;
-            hemocell->cellfields->sourceLattice->get(iX, iY, iZ).defineDensity(newDensity);
-            iniCellAtEquilibrium(hemocell->cellfields->sourceLattice->get(iX, iY, iZ), newDensity, plb::Array<T, SOURCE_DESCRIPTOR<T>::d>((T)0., (T)0., (T)0.));
-
-            // Box3D CTLBox(iX, iX+1, iY, iY+1, iZ, iZ+1);
-            // hemocell->setConcentration(CTLBox, newDensity, plb::Array<T, 3>((T)0., (T)0., (T)0.));
-            std::cout << "density 2 : " << hemocell->cellfields->sourceLattice->get(iX, iY, iZ).computeDensity() << std::endl;
+            for (HemoCellParticle &particle : particles)
+            {
+              if (particle.sv.cellId == CTLList[i].base_cell_id)
+              {
+                particle.sv.secreteCytokine = 1;
+              }
+            }
           }
         }
       }
 
       T pCTCDeath = 1 - exp(-(numberOfNKCContact * numberOfNKCContact));
-      if (pCTCDeath > (T)rand() / (T)(RAND_MAX))
+      if (pCTCDeath > (T)rand() / (T)(RAND_MAX)  && hemocell->iter%1000 == 0)
       {
         std::cout << "KILLING CTC" << std::endl;
         for (HemoCellParticle &particle : particles)

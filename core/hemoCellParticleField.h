@@ -165,6 +165,7 @@ private:
   bool ppc_up_to_date = false;
   bool preinlet_ppc_up_to_date = false;
   bool pg_up_to_date = false;
+  std::map<int, int> NKCKillCount; 
   vector<vector<float>> bonds;
   vector<vector<float>> bonds2;
 public:

@@ -72,7 +72,7 @@ int main(int argc, char *argv[])
     defineDynamics(*hemocell.lattice, bottomChannel, new BounceBack<T, DESCRIPTOR>);
     defineDynamics(*hemocell.lattice, backChannel, new BounceBack<T, DESCRIPTOR>);
     defineDynamics(*hemocell.lattice, frontChannel, new BounceBack<T, DESCRIPTOR>);
-    
+
     // Disable statistics to run faster
     hemocell.lattice->toggleInternalStatistics(false);
     // Equilibrate everything
@@ -108,17 +108,16 @@ int main(int argc, char *argv[])
     hemocell.setParticleVelocityUpdateTimeScaleSeparation(5);
     hemocell.setRepulsion((*cfg)["domain"]["kRep"].read<T>(), (*cfg)["domain"]["RepCutoff"].read<T>());
     hemocell.setRepulsionTimeScaleSeperation((*cfg)["ibm"]["stepMaterialEvery"].read<int>());
-    
 
     hemocell.addCellType<PltSimpleModel>("PLT", ELLIPSOID_FROM_SPHERE);
     hemocell.setMaterialTimeScaleSeparation("PLT", (*cfg)["ibm"]["stepMaterialEvery"].read<int>());
 
     hemocell.addCellType<WbcHighOrderModel>("CTC", WBC_SPHERE);
     hemocell.setMaterialTimeScaleSeparation("CTC", (*cfg)["ibm"]["stepMaterialEvery"].read<int>());
-    
+
     hemocell.addCellType<WbcHighOrderModel>("NKC", WBC_SPHERE);
     hemocell.setMaterialTimeScaleSeparation("NKC", (*cfg)["ibm"]["stepMaterialEvery"].read<int>());
-    
+
     hemocell.addCellType<WbcHighOrderModel>("CTL", WBC_SPHERE);
     hemocell.setMaterialTimeScaleSeparation("CTL", (*cfg)["ibm"]["stepMaterialEvery"].read<int>());
 
@@ -140,25 +139,19 @@ int main(int argc, char *argv[])
     // // diffusionBoundary->addTemperatureBoundary2P(topChannel, *hemocell.cellfields->sourceLattice);
     // // setBoundaryDensity(*hemocell.cellfields->sourceLattice, topChannel, (T)0.5);
 
-    
-
     // OnLatticeBoundaryCondition3D<T, DESCRIPTOR> *boundaryCond = createLocalBoundaryCondition3D<T, DESCRIPTOR>();
     // boundaryCond->addVelocityBoundary2N(bottomChannel, *hemocell.lattice);
     // boundaryCond->addVelocityBoundary2P(topChannel, *hemocell.lattice);
     hemocell.latticeEquilibrium(1., plb::Array<double, 3>(0., 0., 0.));
 
-    initializeAtEquilibrium(*hemocell.cellfields->sourceLattice,hemocell.cellfields->sourceLattice->getBoundingBox(), 0.0, plb::Array<T, 3>((T)0., (T)0., (T)0.));
+    initializeAtEquilibrium(*hemocell.cellfields->sourceLattice, hemocell.cellfields->sourceLattice->getBoundingBox(), 0.0, plb::Array<T, 3>((T)0., (T)0., (T)0.));
     T sourceConcentration = (*cfg)["domain"]["concentration"].read<int>();
-    // initializeAtEquilibrium(*hemocell.cellfields->sourceLattice,source,sourceConcentration, plb::Array<T, 3>((T)0., (T)0., (T)0.)); 
-    
+    // initializeAtEquilibrium(*hemocell.cellfields->sourceLattice,source,sourceConcentration, plb::Array<T, 3>((T)0., (T)0., (T)0.));
 
     hemocell.lattice->initialize();
     hemocell.cellfields->sourceLattice->initialize();
 
-    
-
-   
-    hemocell.enableBoundaryParticles((*cfg)["domain"]["BkRep"].read<T>(), (*cfg)["domain"]["BRepCutoff"].read<T>(),(*cfg)["domain"]["BkAdh"].read<T>(), (*cfg)["domain"]["BAdhCutoff"].read<T>(),(*cfg)["ibm"]["stepMaterialEvery"].read<int>());
+    hemocell.enableBoundaryParticles((*cfg)["domain"]["BkRep"].read<T>(), (*cfg)["domain"]["BRepCutoff"].read<T>(), (*cfg)["domain"]["BkAdh"].read<T>(), (*cfg)["domain"]["BAdhCutoff"].read<T>(), (*cfg)["ibm"]["stepMaterialEvery"].read<int>());
 
     // Turn on periodicity in the X direction
     hemocell.setSystemPeriodicity(0, true);
@@ -184,28 +177,46 @@ int main(int argc, char *argv[])
         // When we want to save
         if (hemocell.iter % tmeas == 0)
         {
-            hlog << "(main) Stats. @ " <<  hemocell.iter << " (" << hemocell.iter * param::dt << " s):" << endl;
+            hlog << "(main) Stats. @ " << hemocell.iter << " (" << hemocell.iter * param::dt << " s):" << endl;
             hlog << "\t # of cells: " << CellInformationFunctionals::getTotalNumberOfCells(&hemocell);
             hlog << " | # of RBC: " << CellInformationFunctionals::getNumberOfCellsFromType(&hemocell, "RBC");
             hlog << ", PLT: " << CellInformationFunctionals::getNumberOfCellsFromType(&hemocell, "PLT") << endl;
-            FluidStatistics finfo = FluidInfo::calculateVelocityStatistics(&hemocell); T toMpS = param::dx / param::dt;
-            hlog << "\t Velocity  -  max.: " << finfo.max * toMpS << " m/s, mean: " << finfo.avg * toMpS<< " m/s, rel. app. viscosity: " << (param::u_lbm_max*0.5) / finfo.avg << endl;
-            ParticleStatistics pinfo = ParticleInfo::calculateForceStatistics(&hemocell); T topN = param::df * 1.0e12;
+            FluidStatistics finfo = FluidInfo::calculateVelocityStatistics(&hemocell);
+            T toMpS = param::dx / param::dt;
+            hlog << "\t Velocity  -  max.: " << finfo.max * toMpS << " m/s, mean: " << finfo.avg * toMpS << " m/s, rel. app. viscosity: " << (param::u_lbm_max * 0.5) / finfo.avg << endl;
+            ParticleStatistics pinfo = ParticleInfo::calculateForceStatistics(&hemocell);
+            T topN = param::df * 1.0e12;
             hlog << "\t Force  -  min.: " << pinfo.min * topN << " pN, max.: " << pinfo.max * topN << " pN (" << pinfo.max << " lf), mean: " << pinfo.avg * topN << " pN" << endl;
             hemocell.writeOutput();
         }
-        if(hemocell.iter == 1000){
-            // initializeAtEquilibrium(*hemocell.cellfields->sourceLattice,source,sourceConcentration, plb::Array<T, 3>((T)0., (T)0., (T)0.)); 
-            //hemocell.setConcentration(source, sourceConcentration, plb::Array<T, 3>((T)0., (T)0., (T)0.));
-        }
-        if(hemocell.iter > 400){
-            //hemocell.cellfields->determineApoptosisFromConcentration();
-            hemocell.cellfields->determineImmuneResponseToCTC(&hemocell);
-            map<int, CellInformation> info_per_cell;
-            CellInformationFunctionals::calculateCellInformation(&hemocell, info_per_cell);
-            HemoCellGatheringFunctional<CellInformation>::gather(info_per_cell);
+        if (hemocell.iter == 1000)
+        {
             
-        }   
+        //     map<int, CellInformation> info_per_cell;
+        //     CellInformationFunctionals::calculateCellInformation(&hemocell, info_per_cell);
+        //     HemoCellGatheringFunctional<CellInformation>::gather(info_per_cell);
+        //     for (auto cell = info_per_cell.begin(); cell != info_per_cell.end(); cell++)
+        //     {
+        //         if(cell->second.secreteCytokine)
+        //         {
+        //             hemo::Array<T,3> pos = cell->second.position;
+        //             Box3D CTLLocation(pos[0],pos[0], pos[1],pos[1], pos[2],pos[2]);
+        //             hemocell.setConcentration(source, sourceConcentration, plb::Array<T, 3>((T)0., (T)0., (T)0.));
+                    
+
+        //         }
+        //     }
+        //     // initializeAtEquilibrium(*hemocell.cellfields->sourceLattice,source,sourceConcentration, plb::Array<T, 3>((T)0., (T)0., (T)0.));
+        //     // hemocell.setConcentration(source, sourceConcentration, plb::Array<T, 3>((T)0., (T)0., (T)0.));
+        // }
+            hemocell.setConcentration(source, sourceConcentration, plb::Array<T, 3>((T)0., (T)0., (T)0.));
+        }
+        if (hemocell.iter > 400)
+        {
+            // hemocell.cellfields->determineApoptosisFromConcentration();
+            hemocell.cellfields->determineImmuneResponseToCTC(&hemocell);
+            
+        }
     }
     return 0;
 }

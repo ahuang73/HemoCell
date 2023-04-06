@@ -52,6 +52,7 @@ struct CellInformation {
   pluint cellType = UINTMAX_MAX;
   bool centerLocal = false;
   int base_cell_id = 0;
+  int secreteCytokine = 0;
 };
 
 class CellInformationFunctionals {
