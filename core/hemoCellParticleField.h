@@ -69,7 +69,7 @@ public:
 
 
     void determineApoptosisFromConcentration();
-    void determineImmuneResponseToCTC(HemoCell& hemocell);
+    void determineImmuneResponseToCTC(HemoCell * hemocell);
     void separateForceVectors();
     void unifyForceVectors();
     void updateResidenceTime(unsigned int rtime);

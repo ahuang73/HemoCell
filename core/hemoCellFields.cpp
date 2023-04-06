@@ -655,12 +655,12 @@ void HemoCellFields::HemoImmuneResponse::processGenericBlocks(Box3D domain, std:
     dynamic_cast<HemoCellParticleField*>(blocks[0])->determineImmuneResponseToCTC(hemocell);
 }
 
-void HemoCellFields::determineImmuneResponseToCTC() {
+void HemoCellFields::determineImmuneResponseToCTC(HemoCell * _hemocell) {
   global.statistics.getCurrent()["determineImmuneResponseToCTC"].start();
 
   vector<MultiBlock3D*>wrapper;
   wrapper.push_back(immersedParticles);
-  HemoImmuneResponse * fnct = new HemoImmuneResponse(hemocell);
+  HemoImmuneResponse * fnct = new HemoImmuneResponse(_hemocell);
   applyProcessingFunctional(fnct,immersedParticles->getBoundingBox(),wrapper);
 
   global.statistics.getCurrent().stop();

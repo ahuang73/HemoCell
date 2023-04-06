@@ -132,6 +132,11 @@ void HemoCell::latticeEquilibrium(T rho, hemo::Array<T, 3> vel) {
   plb::initializeAtEquilibrium(*lattice, (*lattice).getBoundingBox(), rho, vel_plb);
 }
 
+void HemoCell::setConcentration(Box3D domain, T concentration, hemo::Array<T, 3> vel) {
+  plb::Array<T,3> vel_plb = {vel[0],vel[1],vel[2]};
+  plb::initializeAtEquilibrium(*cellfields->sourceLattice, domain, concentration, plb::Array<T, 3>((T)0., (T)0., (T)0.));
+}
+
 void HemoCell::initializeCellfield() {
   if (!domain_lattice) {
     domain_lattice = lattice;

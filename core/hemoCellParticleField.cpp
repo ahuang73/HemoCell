@@ -1133,15 +1133,17 @@ namespace hemo
     pg_up_to_date = false;
   }
 
-  void HemoCellParticleField::determineImmuneResponseToCTC(HemoCell &hemocell)
+  void HemoCellParticleField::determineImmuneResponseToCTC(HemoCell *hemocell)
   {
     map<int, CellInformation> info_per_cell;
-    CellInformationFunctionals::calculateCellInformation(&hemocell, info_per_cell);
+    CellInformationFunctionals::calculateCellInformation(hemocell, info_per_cell);
     HemoCellGatheringFunctional<CellInformation>::gather(info_per_cell);
     unsigned char typeNKCnumber = (*cellFields)["NKC"]->ctype;
+    unsigned char typeCTLnumber = (*cellFields)["CTL"]->ctype;
     unsigned char typeCTCnumber = (*cellFields)["CTC"]->ctype;
 
     vector<CellInformation> NKCList;
+    vector<CellInformation> CTLList;
     vector<CellInformation> CTCList;
     vector<CellInformation> nearestCTC;
 
@@ -1154,6 +1156,10 @@ namespace hemo
       else if (cell->second.cellType == typeNKCnumber)
       {
         NKCList.push_back(cell->second);
+      }
+      else if (cell->second.cellType == typeCTLnumber)
+      {
+        CTLList.push_back(cell->second);
       }
     }
     if (CTCList.empty())
@@ -1182,13 +1188,36 @@ namespace hemo
       }
       nearestCTC.push_back(info_per_cell[cellId]);
     }
+
+    for (int i = 0; i < CTLList.size(); i++)
+    {
+      hemo::Array<T, 3> CTLPos = CTLList[i].position;
+      double minDistance = INT_MAX;
+      int cellId = 0;
+      for (int i = 0; i < CTCList.size(); i++)
+      {
+        hemo::Array<T, 3> CTCPos = CTCList[i].position;
+        T x = CTCPos[0] - CTLPos[0];
+        T y = CTCPos[1] - CTLPos[1];
+        T z = CTCPos[2] - CTLPos[2];
+        T distance = std::sqrt(x * x + y * y + z * z);
+
+        if (distance < minDistance)
+        {
+          minDistance = distance;
+          cellId = CTCList[i].base_cell_id;
+        }
+      }
+      nearestCTC.push_back(info_per_cell[cellId]);
+    }
+
     for (int i = 0; i < CTCList.size(); i++)
     {
       hemo::Array<T, 3> CTCPos = CTCList[i].position;
       plint numberOfNKCContact = 0;
-      for (int i = 0; i < NKCList.size(); i++)
+      for (int j = 0; j < NKCList.size(); j++)
       {
-        hemo::Array<T, 3> NKCPos = NKCList[i].position;
+        hemo::Array<T, 3> NKCPos = NKCList[j].position;
         T x = NKCPos[0] - CTCPos[0];
         T y = NKCPos[1] - CTCPos[1];
         T z = NKCPos[2] - CTCPos[2];
@@ -1197,16 +1226,47 @@ namespace hemo
         // std::cout<<"DISTANCE TO CTC: "<<distance<< " {"<< x*x << " " <<y*y << " "<< z*z<<"}" << std::endl; //NKC and CTC touch at approx 15 distance away
         if (distance <= 15.5)
         {
-         
+
           numberOfNKCContact++;
-          //std::cout<<"DISTANCE TO CTC: "<<distance<< " {"<< x*x << " " <<y*y << " "<< z*z<<"}" << " WBCCONTACT: " << numberOfWBCContact<< std::endl;
+          // std::cout<<"DISTANCE TO CTC: "<<distance<< " {"<< x*x << " " <<y*y << " "<< z*z<<"}" << " WBCCONTACT: " << numberOfWBCContact<< std::endl;
         }
       }
-      
-      T pCTCDeath = 1 - exp(-(numberOfNKCContact * numberOfNKCContact));
-      if (pCTCDeath > (T)rand() / (T)(RAND_MAX) )
+
+      for (int j = 0; j < CTLList.size(); j++)
       {
-        std::cout<<"KILLING CTC" <<std::endl;
+        hemo::Array<T, 3> CTLPos = CTLList[j].position;
+        T x = CTLPos[0] - CTCPos[0];
+        T y = CTLPos[1] - CTCPos[1];
+        T z = CTLPos[2] - CTCPos[2];
+        T distance = std::sqrt(x * x + y * y + z * z);
+        if (distance <= 15.5)
+        {
+
+          // T concentration = 10000.0;
+          // hemocell.cellfields->sourceLattice->get(iX, iY, iZ).defineDensity(concentration);
+          // iniCellAtEquilibrium(hemocell.cellfields->sourceLattice->get(iX, iY, iZ), concentration, plb::Array<T, SOURCE_DESCRIPTOR<T>::d>((T)0., (T)0., (T)0.),concentration);
+
+          if (hemocell->iter % 100 == 0)
+          {
+            plint iX, iY, iZ = 0;
+            computeGridPosition(CTLPos, &iX, &iY, &iZ);
+            T currentDensity =hemocell->cellfields->sourceLattice->get(iX, iY, iZ).computeDensity();
+            T newDensity = 20000;
+            std::cout << "density 1 : " << hemocell->cellfields->sourceLattice->get(iX, iY, iZ).computeDensity() << std::endl;
+            hemocell->cellfields->sourceLattice->get(iX, iY, iZ).defineDensity(newDensity);
+            iniCellAtEquilibrium(hemocell->cellfields->sourceLattice->get(iX, iY, iZ), newDensity, plb::Array<T, SOURCE_DESCRIPTOR<T>::d>((T)0., (T)0., (T)0.));
+
+            // Box3D CTLBox(iX, iX+1, iY, iY+1, iZ, iZ+1);
+            // hemocell->setConcentration(CTLBox, newDensity, plb::Array<T, 3>((T)0., (T)0., (T)0.));
+            std::cout << "density 2 : " << hemocell->cellfields->sourceLattice->get(iX, iY, iZ).computeDensity() << std::endl;
+          }
+        }
+      }
+
+      T pCTCDeath = 1 - exp(-(numberOfNKCContact * numberOfNKCContact));
+      if (pCTCDeath > (T)rand() / (T)(RAND_MAX))
+      {
+        std::cout << "KILLING CTC" << std::endl;
         for (HemoCellParticle &particle : particles)
         {
           if (particle.sv.cellId == CTCList[i].base_cell_id)
@@ -1217,10 +1277,9 @@ namespace hemo
         removeParticles(1);
         lpc_up_to_date = false;
         pg_up_to_date = false;
-        
       }
     }
-    //move towards CTC
+    // move towards CTC
     for (int i = 0; i < NKCList.size(); i++)
     {
       hemo::Array<T, 3> NKCPos = NKCList[i].position;
@@ -1228,11 +1287,34 @@ namespace hemo
       hemo::Array<T, 3> CTCPos = nearestCTC[i].position;
       hemo::Array<T, 3> CTCVelocity = nearestCTC[i].velocity;
       hemo::Array<T, 3> CTCDirection = {CTCPos[0] - NKCPos[0], CTCPos[1] - NKCPos[1], CTCPos[2] - NKCPos[2]};
-      T CTCDistance = std::sqrt(CTCDirection[0]*CTCDirection[0] + CTCDirection[1]*CTCDirection[1] + CTCDirection[2]*CTCDirection[2]);
+      T CTCDistance = std::sqrt(CTCDirection[0] * CTCDirection[0] + CTCDirection[1] * CTCDirection[1] + CTCDirection[2] * CTCDirection[2]);
       // std::cout<<"VECTOR: " << CTCDirection[0] << " " << CTCDirection[1] << " " << CTCDirection[2] << " " <<std::endl;
       for (HemoCellParticle &particle : particles)
       {
         if (particle.sv.cellId == NKCList[i].base_cell_id && CTCDistance > 15.5)
+        {
+          particle.sv.v = 0.0005 * CTCDirection;
+        }
+      }
+    }
+
+    for (int i = 0; i < CTLList.size(); i++)
+    {
+      int NKCOffset = 0;
+      if (NKCList.size() != 0)
+      {
+        NKCOffset = NKCList.size() - 1;
+      }
+      hemo::Array<T, 3> CTLPos = CTLList[i].position;
+      hemo::Array<T, 3> CTLVelocity = CTLList[i].velocity;
+      hemo::Array<T, 3> CTCPos = nearestCTC[i + NKCOffset].position;
+      hemo::Array<T, 3> CTCVelocity = nearestCTC[i + NKCOffset].velocity;
+      hemo::Array<T, 3> CTCDirection = {CTCPos[0] - CTLPos[0], CTCPos[1] - CTLPos[1], CTCPos[2] - CTLPos[2]};
+      T CTCDistance = std::sqrt(CTCDirection[0] * CTCDirection[0] + CTCDirection[1] * CTCDirection[1] + CTCDirection[2] * CTCDirection[2]);
+      // std::cout<<"VECTOR: " << CTCDirection[0] << " " << CTCDirection[1] << " " << CTCDirection[2] << " " <<std::endl;
+      for (HemoCellParticle &particle : particles)
+      {
+        if (particle.sv.cellId == CTLList[i].base_cell_id && CTCDistance > 15.5)
         {
           particle.sv.v = 0.0005 * CTCDirection;
         }

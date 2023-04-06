@@ -1,8 +1,8 @@
 <?xml version="1.0" ?>
 <hemocell>
 <MaterialModel>
-    <comment>Parameters for the HO WBC constitutive model.</comment>
-    <name>WBC</name>
+    <comment>Parameters for the HO NKC constitutive model.</comment>
+    <name>NKC</name>
     <eta_m> 1.0e-9 </eta_m> <!-- Membrane viscosity. [1e-9 Ns/m]-->
     <kBend> 200.0 </kBend> <!-- Bending force modulus for membrane + cytoskeleton ( in k_BT units, 4.142e-21 N m) [200] -->
     <kVolume> 20.0 </kVolume> <!-- Volume conservation coefficient (dimensionless) [20] --> 

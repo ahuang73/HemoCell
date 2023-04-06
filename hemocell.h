@@ -103,7 +103,7 @@ class HemoCell {
    *  @param vel the desired macroscopic velocity of each node
    */
   void latticeEquilibrium(T rho, hemo::Array<T, 3> vel);
-
+  void setConcentration(Box3D domain, T concentration, hemo::Array<T, 3> vel);
   /**
    * Initialice the cellfields structure (and thus also the particlefield)
    */
