@@ -152,7 +152,9 @@ void HemoCellFields::createSourceField() {
   lattice->getBlockCommunicator();
   double Dp = 0;
   double D  = Dp * param::dt / (param::dx * param::dx);
-  param::tau_CEPAC = ( 3. * D ) + 0.5; //param::tau;
+  //param::tau_CEPAC = ( 3. * D ) + 0.5; //param::tau;
+
+  param::tau_CEPAC = 1e-50;
   sourceLattice = new MultiBlockLattice3D<T,SOURCE_DESCRIPTOR>(
           MultiBlockManagement3D( *sbStructure,
                                   tAttribution,
@@ -161,7 +163,7 @@ void HemoCellFields::createSourceField() {
           plb::defaultMultiBlockPolicy3D().getBlockCommunicator(),
           plb::defaultMultiBlockPolicy3D().getCombinedStatistics(),
           plb::defaultMultiBlockPolicy3D().getMultiCellAccess<T,SOURCE_DESCRIPTOR>(),
-          new AdvectionDiffusionRLBdynamics<T, SOURCE_DESCRIPTOR>(param::tau_CEPAC) //adding "withSource" breaks it, tau = 0.5 -> condensed in the middle at the start, tau = 0.001 -> same behavior as taucepac
+          new AdvectionDiffusionBGKdynamics<T, SOURCE_DESCRIPTOR>(1e-5) //adding "withSource" breaks it, tau = 0.5 -> condensed in the middle at the start, tau = 0.001 -> same behavior as taucepac
           );
 
   sourceLattice->periodicity().toggle(0,lattice->periodicity().get(0));
