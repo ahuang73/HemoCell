@@ -844,6 +844,7 @@ namespace hemo
     {                                                                                                                                                                     \
       HemoCellParticle &lParticle = particles[particle_grid[l_index][i]];                                                                                                 \
       HemoCellParticle &nParticle = particles[particle_grid[n_index][j]];                                                                                                 \
+      \  
       if (&nParticle == &lParticle)                                                                                                                                       \
       {                                                                                                                                                                   \
         continue;                                                                                                                                                         \
@@ -921,6 +922,7 @@ namespace hemo
   {
     const T r_const = cellFields->repulsionConstant;
     const T r_cutoff = cellFields->repulsionCutoff;
+    plint numberOfParticlesInContact = 0;
     if (!pg_up_to_date)
     {
       update_pg();
@@ -1164,6 +1166,24 @@ namespace hemo
     }
     if (CTCList.empty())
     {
+      T pNKCDeath = 1 - exp(-(0.5) * (0.5));
+      if (pNKCDeath > (T)rand() / (T)(RAND_MAX) && hemocell->iter % 100 == 0)
+      {
+        for (int i = 0; i < NKCList.size(); i++)
+        {
+          for (HemoCellParticle &particle : particles)
+          {
+            if (particle.sv.cellId == NKCList[i].base_cell_id)
+            {
+              particle.tag = 1;
+            }
+          }
+          removeParticles(1);
+          lpc_up_to_date = false;
+          pg_up_to_date = false;
+        }
+      }
+
       return;
     }
 
@@ -1185,6 +1205,20 @@ namespace hemo
           minDistance = distance;
           cellId = CTCList[i].base_cell_id;
         }
+      }
+      T pNKCDeath = 1 - exp(-(0.5 / CTCList.size()) * (0.5 / CTCList.size()));
+      if (pNKCDeath > (T)rand() / (T)(RAND_MAX) && hemocell->iter % 1000 == 0)
+      {
+        for (HemoCellParticle &particle : particles)
+        {
+          if (particle.sv.cellId == NKCList[i].base_cell_id)
+          {
+            particle.tag = 1;
+          }
+        }
+        removeParticles(1);
+        lpc_up_to_date = false;
+        pg_up_to_date = false;
       }
       nearestCTC.push_back(info_per_cell[cellId]);
     }
@@ -1241,26 +1275,31 @@ namespace hemo
         T distance = std::sqrt(x * x + y * y + z * z);
         if (distance <= 15.5)
         {
+          if(hemocell->iter%100 == 0)
+          {
 
-          // T concentration = 10000.0;
+            T concentration = 1000.0;
+            Box3D CTLLocation(CTLPos[0],CTLPos[0], CTLPos[1],CTLPos[1], CTLPos[2],CTLPos[2]);
+            hemocell->setConcentration(CTLLocation,concentration, plb::Array<T, 3>((T)0., (T)0., (T)0.));
+
+          }
+          
           // hemocell.cellfields->sourceLattice->get(iX, iY, iZ).defineDensity(concentration);
           // iniCellAtEquilibrium(hemocell.cellfields->sourceLattice->get(iX, iY, iZ), concentration, plb::Array<T, SOURCE_DESCRIPTOR<T>::d>((T)0., (T)0., (T)0.),concentration);
-
-          if (hemocell->iter % 100 == 0)
-          {
-            for (HemoCellParticle &particle : particles)
-            {
-              if (particle.sv.cellId == CTLList[i].base_cell_id)
-              {
-                particle.sv.secreteCytokine = 1;
-              }
-            }
-          }
+       
+          // for (HemoCellParticle &particle : particles)
+          // {
+          //   if (particle.sv.cellId == CTLList[i].base_cell_id)
+          //   {
+          //     particle.sv.secreteCytokine = 1;
+                                  
+          //   }
+          // }
         }
       }
 
       T pCTCDeath = 1 - exp(-(numberOfNKCContact * numberOfNKCContact));
-      if (pCTCDeath > (T)rand() / (T)(RAND_MAX)  && hemocell->iter%1000 == 0)
+      if (pCTCDeath > (T)rand() / (T)(RAND_MAX) && hemocell->iter % 1000 == 0)
       {
         std::cout << "KILLING CTC" << std::endl;
         for (HemoCellParticle &particle : particles)
