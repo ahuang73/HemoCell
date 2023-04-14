@@ -1094,6 +1094,10 @@ namespace hemo
         particle.kernelLocations[j]->computeVelocity(velocity_comp);
         velocity += (velocity_comp * particle.kernelWeights[j]);
       }
+      if (particle.sv.celltype >= 3)
+      {
+        continue;
+      }
       particle.sv.v = velocity;
     }
   }
@@ -1257,12 +1261,17 @@ namespace hemo
         T z = NKCPos[2] - CTCPos[2];
         T distance = std::sqrt(x * x + y * y + z * z);
 
-        // std::cout<<"DISTANCE TO CTC: "<<distance<< " {"<< x*x << " " <<y*y << " "<< z*z<<"}" << std::endl; //NKC and CTC touch at approx 15 distance away
         if (distance <= 15.5)
         {
 
           numberOfNKCContact++;
-          // std::cout<<"DISTANCE TO CTC: "<<distance<< " {"<< x*x << " " <<y*y << " "<< z*z<<"}" << " WBCCONTACT: " << numberOfWBCContact<< std::endl;
+          if (hemocell->iter % 100 == 0)
+          {
+
+            T concentration = 1000.0;
+            Box3D CTLLocation(NKCPos[0], NKCPos[0], NKCPos[1], NKCPos[1], NKCPos[2], NKCPos[2]);
+            hemocell->setConcentration(CTLLocation, concentration, plb::Array<T, 3>((T)0., (T)0., (T)0.));
+          }
         }
       }
 
@@ -1275,26 +1284,13 @@ namespace hemo
         T distance = std::sqrt(x * x + y * y + z * z);
         if (distance <= 15.5)
         {
-          if(hemocell->iter%100 == 0)
+          if (hemocell->iter % 100 == 0)
           {
 
             T concentration = 1000.0;
-            Box3D CTLLocation(CTLPos[0],CTLPos[0], CTLPos[1],CTLPos[1], CTLPos[2],CTLPos[2]);
-            hemocell->setConcentration(CTLLocation,concentration, plb::Array<T, 3>((T)0., (T)0., (T)0.));
-
+            Box3D CTLLocation(CTLPos[0], CTLPos[0], CTLPos[1], CTLPos[1], CTLPos[2], CTLPos[2]);
+            hemocell->setConcentration(CTLLocation, concentration, plb::Array<T, 3>((T)0., (T)0., (T)0.));
           }
-          
-          // hemocell.cellfields->sourceLattice->get(iX, iY, iZ).defineDensity(concentration);
-          // iniCellAtEquilibrium(hemocell.cellfields->sourceLattice->get(iX, iY, iZ), concentration, plb::Array<T, SOURCE_DESCRIPTOR<T>::d>((T)0., (T)0., (T)0.),concentration);
-       
-          // for (HemoCellParticle &particle : particles)
-          // {
-          //   if (particle.sv.cellId == CTLList[i].base_cell_id)
-          //   {
-          //     particle.sv.secreteCytokine = 1;
-                                  
-          //   }
-          // }
         }
       }
 
@@ -1314,21 +1310,23 @@ namespace hemo
         pg_up_to_date = false;
       }
     }
+
     // move towards CTC
     for (int i = 0; i < NKCList.size(); i++)
     {
+      T randx = (T)rand() / (T)RAND_MAX;
+      T randy = (T)rand() / (T)RAND_MAX;
+      T randz = (T)rand() / (T)RAND_MAX;
+      hemo::Array<T, 3> rand_vect = {randx, randy, randz};
       hemo::Array<T, 3> NKCPos = NKCList[i].position;
-      hemo::Array<T, 3> NKCVelocity = NKCList[i].velocity;
       hemo::Array<T, 3> CTCPos = nearestCTC[i].position;
-      hemo::Array<T, 3> CTCVelocity = nearestCTC[i].velocity;
       hemo::Array<T, 3> CTCDirection = {CTCPos[0] - NKCPos[0], CTCPos[1] - NKCPos[1], CTCPos[2] - NKCPos[2]};
       T CTCDistance = std::sqrt(CTCDirection[0] * CTCDirection[0] + CTCDirection[1] * CTCDirection[1] + CTCDirection[2] * CTCDirection[2]);
-      // std::cout<<"VECTOR: " << CTCDirection[0] << " " << CTCDirection[1] << " " << CTCDirection[2] << " " <<std::endl;
       for (HemoCellParticle &particle : particles)
       {
-        if (particle.sv.cellId == NKCList[i].base_cell_id && CTCDistance > 15.5)
+        if (particle.sv.cellId == CTLList[i].base_cell_id && CTCDistance > 15.5 && hemocell->iter % 100 == 0)
         {
-          particle.sv.v = 0.0005 * CTCDirection;
+          particle.sv.v = 0.005 * rand_vect;
         }
       }
     }
@@ -1340,18 +1338,59 @@ namespace hemo
       {
         NKCOffset = NKCList.size() - 1;
       }
+      T randx = (T)rand() / (T)RAND_MAX + (T)rand() / (T)RAND_MAX - 1;
+      T randy = (T)rand() / (T)RAND_MAX + (T)rand() / (T)RAND_MAX - 1;
+      T randz = (T)rand() / (T)RAND_MAX + (T)rand() / (T)RAND_MAX - 1;
+      hemo::Array<T, 3> rand_vect = {randx, randy, randz};
       hemo::Array<T, 3> CTLPos = CTLList[i].position;
-      hemo::Array<T, 3> CTLVelocity = CTLList[i].velocity;
       hemo::Array<T, 3> CTCPos = nearestCTC[i + NKCOffset].position;
-      hemo::Array<T, 3> CTCVelocity = nearestCTC[i + NKCOffset].velocity;
       hemo::Array<T, 3> CTCDirection = {CTCPos[0] - CTLPos[0], CTCPos[1] - CTLPos[1], CTCPos[2] - CTLPos[2]};
       T CTCDistance = std::sqrt(CTCDirection[0] * CTCDirection[0] + CTCDirection[1] * CTCDirection[1] + CTCDirection[2] * CTCDirection[2]);
       // std::cout<<"VECTOR: " << CTCDirection[0] << " " << CTCDirection[1] << " " << CTCDirection[2] << " " <<std::endl;
+      plint iX, iY, iZ = 0;
+      computeGridPosition(CTLPos, &iX, &iY, &iZ);
+      T currentDensity = sourceLattice->get(iX, iY, iZ).computeDensity();
+      T densityMax = 0;
+      bool isGradient = false;
+      hemo::Array<T,3> directionOfGradient = {0,0,0};
+      for (plint x = iX - 2; x < iX + 2; x++)
+      {
+        if(x>= atomicLattice->getNx() || x<0 ) continue;
+        
+        for (plint y = iY - 2; y < iY + 2; y++)
+        {
+          if(y>= atomicLattice->getNx() || x<0 ) continue;
+          
+          for (plint z = iZ - 2; z < iZ + 2; z++)
+          {
+            if(z>= atomicLattice->getNx() || x<0 ) continue;
+
+            T density = sourceLattice->get(x,y,z).computeDensity();
+            if(density >1)
+            {
+              //std::cout<<"DENSITY AT: "<< x << ","<< y << ","<< z << ": "<<density<<std::endl;
+            }
+            if(density > densityMax){
+              directionOfGradient = {x-CTLPos[0], y - CTLPos[1], z - CTLPos[2]};
+              densityMax = density;
+              //std::cout<<"GREATER: "<< x << ","<< y << ","<< z << ": "<<density<<std::endl;
+              isGradient = true;
+            }
+          }
+        }
+        
+      }
+      std::cout<<"MAX AT: "<< directionOfGradient[0] << ","<< directionOfGradient[1] << ","<< directionOfGradient[2] << ": "<<densityMax<<std::endl;
+
       for (HemoCellParticle &particle : particles)
       {
-        if (particle.sv.cellId == CTLList[i].base_cell_id && CTCDistance > 15.5)
+
+        if (particle.sv.cellId == CTLList[i].base_cell_id && CTCDistance > 15.5 && hemocell->iter % 100 == 0)
         {
-          particle.sv.v = 0.0005 * CTCDirection;
+          particle.sv.v = 0.005 * rand_vect;
+        }
+        if(isGradient){
+          particle.sv.v = 0.00001*directionOfGradient;
         }
       }
     }
