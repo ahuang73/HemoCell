@@ -1094,6 +1094,7 @@ namespace hemo
         particle.kernelLocations[j]->computeVelocity(velocity_comp);
         velocity += (velocity_comp * particle.kernelWeights[j]);
       }
+
       if (particle.sv.celltype >= 3)
       {
         continue;
@@ -1211,7 +1212,7 @@ namespace hemo
         }
       }
       T pNKCDeath = 1 - exp(-(0.5 / CTCList.size()) * (0.5 / CTCList.size()));
-      if (pNKCDeath > (T)rand() / (T)(RAND_MAX) && hemocell->iter % 1000 == 0)
+      if (pNKCDeath > (T)rand() / (T)(RAND_MAX) && hemocell->iter % 10000 == 0)
       {
         for (HemoCellParticle &particle : particles)
         {
@@ -1269,8 +1270,8 @@ namespace hemo
           {
 
             T concentration = 1000.0;
-            Box3D CTLLocation(NKCPos[0], NKCPos[0], NKCPos[1], NKCPos[1], NKCPos[2], NKCPos[2]);
-            hemocell->setConcentration(CTLLocation, concentration, plb::Array<T, 3>((T)0., (T)0., (T)0.));
+            Box3D NKCLocation(NKCPos[0], NKCPos[0], NKCPos[1], NKCPos[1], NKCPos[2], NKCPos[2]);
+            hemocell->setConcentration(NKCLocation, concentration, plb::Array<T, 3>((T)0., (T)0., (T)0.));
           }
         }
       }
@@ -1322,687 +1323,752 @@ namespace hemo
       hemo::Array<T, 3> CTCPos = nearestCTC[i].position;
       hemo::Array<T, 3> CTCDirection = {CTCPos[0] - NKCPos[0], CTCPos[1] - NKCPos[1], CTCPos[2] - NKCPos[2]};
       T CTCDistance = std::sqrt(CTCDirection[0] * CTCDirection[0] + CTCDirection[1] * CTCDirection[1] + CTCDirection[2] * CTCDirection[2]);
-      for (HemoCellParticle &particle : particles)
-      {
-        if (particle.sv.cellId == CTLList[i].base_cell_id && CTCDistance > 15.5 && hemocell->iter % 100 == 0)
-        {
-          particle.sv.v = 0.005 * rand_vect;
-        }
-      }
-    }
-
-    for (int i = 0; i < CTLList.size(); i++)
-    {
-      int NKCOffset = 0;
-      if (NKCList.size() != 0)
-      {
-        NKCOffset = NKCList.size() - 1;
-      }
-      T randx = (T)rand() / (T)RAND_MAX + (T)rand() / (T)RAND_MAX - 1;
-      T randy = (T)rand() / (T)RAND_MAX + (T)rand() / (T)RAND_MAX - 1;
-      T randz = (T)rand() / (T)RAND_MAX + (T)rand() / (T)RAND_MAX - 1;
-      hemo::Array<T, 3> rand_vect = {randx, randy, randz};
-      hemo::Array<T, 3> CTLPos = CTLList[i].position;
-      hemo::Array<T, 3> CTCPos = nearestCTC[i + NKCOffset].position;
-      hemo::Array<T, 3> CTCDirection = {CTCPos[0] - CTLPos[0], CTCPos[1] - CTLPos[1], CTCPos[2] - CTLPos[2]};
-      T CTCDistance = std::sqrt(CTCDirection[0] * CTCDirection[0] + CTCDirection[1] * CTCDirection[1] + CTCDirection[2] * CTCDirection[2]);
-      // std::cout<<"VECTOR: " << CTCDirection[0] << " " << CTCDirection[1] << " " << CTCDirection[2] << " " <<std::endl;
       plint iX, iY, iZ = 0;
-      computeGridPosition(CTLPos, &iX, &iY, &iZ);
-      T currentDensity = sourceLattice->get(iX, iY, iZ).computeDensity();
+      computeGridPosition(NKCPos, &iX, &iY, &iZ);
       T densityMax = 0;
       bool isGradient = false;
-      hemo::Array<T,3> directionOfGradient = {0,0,0};
+      hemo::Array<T, 3> directionOfGradient = {0, 0, 0};
       for (plint x = iX - 2; x < iX + 2; x++)
       {
-        if(x>= atomicLattice->getNx() || x<0 ) continue;
-        
+        if (x >= atomicLattice->getNx() || x < 0)
+          continue;
+
         for (plint y = iY - 2; y < iY + 2; y++)
         {
-          if(y>= atomicLattice->getNx() || x<0 ) continue;
-          
+          if (y >= atomicLattice->getNx() || x < 0)
+            continue;
+
           for (plint z = iZ - 2; z < iZ + 2; z++)
           {
-            if(z>= atomicLattice->getNx() || x<0 ) continue;
+            if (z >= atomicLattice->getNx() || x < 0)
+              continue;
 
-            T density = sourceLattice->get(x,y,z).computeDensity();
-            if(density >1)
+            T density = sourceLattice->get(x, y, z).computeDensity();
+            if (density > 1)
             {
-              //std::cout<<"DENSITY AT: "<< x << ","<< y << ","<< z << ": "<<density<<std::endl;
+              // std::cout<<"DENSITY AT: "<< x << ","<< y << ","<< z << ": "<<density<<std::endl;
             }
-            if(density > densityMax){
-              directionOfGradient = {x-CTLPos[0], y - CTLPos[1], z - CTLPos[2]};
+            if (density > densityMax)
+            {
+              directionOfGradient = {x - NKCPos[0], y - NKCPos[1], z - NKCPos[2]};
               densityMax = density;
-              //std::cout<<"GREATER: "<< x << ","<< y << ","<< z << ": "<<density<<std::endl;
+              // std::cout<<"GREATER: "<< x << ","<< y << ","<< z << ": "<<density<<std::endl;
               isGradient = true;
             }
           }
         }
-        
       }
-      std::cout<<"MAX AT: "<< directionOfGradient[0] << ","<< directionOfGradient[1] << ","<< directionOfGradient[2] << ": "<<densityMax<<std::endl;
+      hemo::Array<T, 3> velocity;
+      plb::Array<T, 3> velocity_comp;
+      for (HemoCellParticle &particle : particles)
+      {
+        
+        if (particle.sv.cellId == NKCList[i].base_cell_id && CTCDistance > 15.5 && hemocell->iter % 100 == 0)
+        {
+          velocity = {0.0, 0.0, 0.0};
+          for (pluint j = 0; j < particle.kernelLocations.size(); j++)
+          {
+          // Direct access
+            particle.kernelLocations[j]->computeVelocity(velocity_comp);
+            velocity += (velocity_comp * particle.kernelWeights[j]);
+          }
+          particle.sv.v = velocity + 0.0001*rand_vect;
+          if (isGradient)
+          {
+            particle.sv.v = velocity + 0.0001 * directionOfGradient;
+          }
+        }
+       
+      }
 
+      for (int i = 0; i < CTLList.size(); i++)
+      {
+        int NKCOffset = 0;
+        if (NKCList.size() != 0)
+        {
+          NKCOffset = NKCList.size() - 1;
+        }
+        T randx = (T)rand() / (T)RAND_MAX + (T)rand() / (T)RAND_MAX - 1;
+        T randy = (T)rand() / (T)RAND_MAX + (T)rand() / (T)RAND_MAX - 1;
+        T randz = (T)rand() / (T)RAND_MAX + (T)rand() / (T)RAND_MAX - 1;
+        hemo::Array<T, 3> rand_vect = {randx, randy, randz};
+        hemo::Array<T, 3> CTLPos = CTLList[i].position;
+        hemo::Array<T, 3> CTCPos = nearestCTC[i + NKCOffset].position;
+        hemo::Array<T, 3> CTCDirection = {CTCPos[0] - CTLPos[0], CTCPos[1] - CTLPos[1], CTCPos[2] - CTLPos[2]};
+        T CTCDistance = std::sqrt(CTCDirection[0] * CTCDirection[0] + CTCDirection[1] * CTCDirection[1] + CTCDirection[2] * CTCDirection[2]);
+        plint iX, iY, iZ = 0;
+        computeGridPosition(CTLPos, &iX, &iY, &iZ);
+        T densityMax = 0;
+        bool isGradient = false;
+        hemo::Array<T, 3> directionOfGradient = {0, 0, 0};
+        for (plint x = iX - 2; x < iX + 2; x++)
+        {
+          if (x >= atomicLattice->getNx() || x < 0)
+            continue;
+
+          for (plint y = iY - 2; y < iY + 2; y++)
+          {
+            if (y >= atomicLattice->getNx() || x < 0)
+              continue;
+
+            for (plint z = iZ - 2; z < iZ + 2; z++)
+            {
+              if (z >= atomicLattice->getNx() || x < 0)
+                continue;
+
+              T density = sourceLattice->get(x, y, z).computeDensity();
+              if (density > 1)
+              {
+                // std::cout<<"DENSITY AT: "<< x << ","<< y << ","<< z << ": "<<density<<std::endl;
+              }
+              if (density > densityMax)
+              {
+                directionOfGradient = {x - CTLPos[0], y - CTLPos[1], z - CTLPos[2]};
+                densityMax = density;
+                // std::cout<<"GREATER: "<< x << ","<< y << ","<< z << ": "<<density<<std::endl;
+                isGradient = true;
+              }
+            }
+          }
+        }
+        hemo::Array<T, 3> velocity;
+        plb::Array<T, 3> velocity_comp;
+        for (HemoCellParticle &particle : particles)
+        {
+          velocity = {0.0, 0.0, 0.0};
+          for (pluint j = 0; j < particle.kernelLocations.size(); j++)
+          {
+            // Direct access
+            particle.kernelLocations[j]->computeVelocity(velocity_comp);
+            velocity += (velocity_comp * particle.kernelWeights[j]);
+          }
+          if (particle.sv.cellId == CTLList[i].base_cell_id && CTCDistance > 15.5 && hemocell->iter % 100 == 0)
+          {
+            velocity = {0.0, 0.0, 0.0};
+            for (pluint j = 0; j < particle.kernelLocations.size(); j++)
+            {
+              // Direct access
+              particle.kernelLocations[j]->computeVelocity(velocity_comp);
+              velocity += (velocity_comp * particle.kernelWeights[j]);
+            }
+            particle.sv.v = velocity + rand_vect;
+          }
+          if (isGradient)
+          {
+            particle.sv.v = 0.00001 * directionOfGradient;
+          }
+        }
+      }
+    }
+  }
+
+    void HemoCellParticleField::spreadParticleForce(Box3D domain)
+    {
       for (HemoCellParticle &particle : particles)
       {
 
-        if (particle.sv.cellId == CTLList[i].base_cell_id && CTCDistance > 15.5 && hemocell->iter % 100 == 0)
-        {
-          particle.sv.v = 0.005 * rand_vect;
-        }
-        if(isGradient){
-          particle.sv.v = 0.00001*directionOfGradient;
-        }
-      }
-    }
-  }
+        // Trick to allow for different kernels for different particle types.
+        (*cellFields)[particle.sv.celltype]->kernelMethod(*atomicLattice, particle);
 
-  void HemoCellParticleField::spreadParticleForce(Box3D domain)
-  {
-    for (HemoCellParticle &particle : particles)
-    {
-
-      // Trick to allow for different kernels for different particle types.
-      (*cellFields)[particle.sv.celltype]->kernelMethod(*atomicLattice, particle);
-
-      // Capping force to ensure stability -> NOTE: this can introduce an error if forces are large!
+        // Capping force to ensure stability -> NOTE: this can introduce an error if forces are large!
 #ifdef FORCE_LIMIT
-      const T force_mag = norm(particle.sv.force);
-      if (force_mag > param::f_limit)
-        particle.sv.force *= param::f_limit / force_mag;
+        const T force_mag = norm(particle.sv.force);
+        if (force_mag > param::f_limit)
+          particle.sv.force *= param::f_limit / force_mag;
 #endif
 
-      // Directly change the force on a node, quick-and-dirty solution.
-      for (pluint j = 0; j < particle.kernelLocations.size(); j++)
-      {
-        // Direct access
-        particle.kernelLocations[j]->external.data[0] += ((particle.sv.force_repulsion[0] + particle.sv.force_adhesion[0] + particle.sv.force[0]) * particle.kernelWeights[j]);
-        particle.kernelLocations[j]->external.data[1] += ((particle.sv.force_repulsion[1] + particle.sv.force_adhesion[1] + particle.sv.force[1]) * particle.kernelWeights[j]);
-        particle.kernelLocations[j]->external.data[2] += ((particle.sv.force_repulsion[2] + particle.sv.force_adhesion[2] + particle.sv.force[2]) * particle.kernelWeights[j]);
+        // Directly change the force on a node, quick-and-dirty solution.
+        for (pluint j = 0; j < particle.kernelLocations.size(); j++)
+        {
+          // Direct access
+          particle.kernelLocations[j]->external.data[0] += ((particle.sv.force_repulsion[0] + particle.sv.force_adhesion[0] + particle.sv.force[0]) * particle.kernelWeights[j]);
+          particle.kernelLocations[j]->external.data[1] += ((particle.sv.force_repulsion[1] + particle.sv.force_adhesion[1] + particle.sv.force[1]) * particle.kernelWeights[j]);
+          particle.kernelLocations[j]->external.data[2] += ((particle.sv.force_repulsion[2] + particle.sv.force_adhesion[2] + particle.sv.force[2]) * particle.kernelWeights[j]);
+        }
       }
     }
-  }
 
-  void HemoCellParticleField::populateBoundaryParticles()
-  {
-
-    for (int x = 0; x < this->atomicLattice->getNx() - 1; x++)
+    void HemoCellParticleField::populateBoundaryParticles()
     {
-      for (int y = 0; y < this->atomicLattice->getNy() - 1; y++)
+
+      for (int x = 0; x < this->atomicLattice->getNx() - 1; x++)
       {
-        for (int z = 0; z < this->atomicLattice->getNz() - 1; z++)
+        for (int y = 0; y < this->atomicLattice->getNy() - 1; y++)
         {
-          if (this->atomicLattice->get(x, y, z).getDynamics().isBoundary())
+          for (int z = 0; z < this->atomicLattice->getNz() - 1; z++)
           {
-            for (int xx = x - 1; xx <= x + 1; xx++)
+            if (this->atomicLattice->get(x, y, z).getDynamics().isBoundary())
             {
-              if (xx < 0 || xx > this->atomicLattice->getNx() - 1)
+              for (int xx = x - 1; xx <= x + 1; xx++)
               {
-                continue;
-              }
-              for (int yy = y - 1; yy <= y + 1; yy++)
-              {
-                if (yy < 0 || yy > this->atomicLattice->getNy() - 1)
+                if (xx < 0 || xx > this->atomicLattice->getNx() - 1)
                 {
                   continue;
                 }
-                for (int zz = z - 1; zz <= z + 1; zz++)
+                for (int yy = y - 1; yy <= y + 1; yy++)
                 {
-                  if (zz < 0 || zz > this->atomicLattice->getNz() - 1)
+                  if (yy < 0 || yy > this->atomicLattice->getNy() - 1)
                   {
                     continue;
                   }
-                  if (!this->atomicLattice->get(xx, yy, zz).getDynamics().isBoundary())
+                  for (int zz = z - 1; zz <= z + 1; zz++)
                   {
-                    boundaryParticles.push_back({x, y, z});
-                    goto end_inner_loop;
+                    if (zz < 0 || zz > this->atomicLattice->getNz() - 1)
+                    {
+                      continue;
+                    }
+                    if (!this->atomicLattice->get(xx, yy, zz).getDynamics().isBoundary())
+                    {
+                      boundaryParticles.push_back({x, y, z});
+                      goto end_inner_loop;
+                    }
                   }
                 }
               }
             }
+          end_inner_loop:;
           }
-        end_inner_loop:;
         }
       }
     }
-  }
 
-  void HemoCellParticleField::applyBoundaryRepulsionForce()
-  {
-    if (!pg_up_to_date)
+    void HemoCellParticleField::applyBoundaryRepulsionForce()
     {
-      update_pg();
-    }
-    const T &br_cutoff = cellFields->boundaryRepulsionCutoff;
-    const T &br_const = cellFields->boundaryRepulsionConstant;
-    for (Dot3D &b_particle : boundaryParticles)
-    {
-      for (int x = b_particle.x - 1; x <= b_particle.x + 1; x++)
+      if (!pg_up_to_date)
       {
-        if (x < 0 || x > this->atomicLattice->getNx() - 1)
+        update_pg();
+      }
+      const T &br_cutoff = cellFields->boundaryRepulsionCutoff;
+      const T &br_const = cellFields->boundaryRepulsionConstant;
+      for (Dot3D &b_particle : boundaryParticles)
+      {
+        for (int x = b_particle.x - 1; x <= b_particle.x + 1; x++)
         {
-          continue;
-        }
-        for (int y = b_particle.y - 1; y <= b_particle.y + 1; y++)
-        {
-          if (y < 0 || y > this->atomicLattice->getNy() - 1)
+          if (x < 0 || x > this->atomicLattice->getNx() - 1)
           {
             continue;
           }
-          for (int z = b_particle.z - 1; z <= b_particle.z + 1; z++)
+          for (int y = b_particle.y - 1; y <= b_particle.y + 1; y++)
           {
-            if (z < 0 || z > this->atomicLattice->getNz() - 1)
+            if (y < 0 || y > this->atomicLattice->getNy() - 1)
             {
               continue;
             }
-            const int &index = grid_index(x, y, z);
-            for (unsigned int i = 0; i < particle_grid_size[index]; i++)
+            for (int z = b_particle.z - 1; z <= b_particle.z + 1; z++)
             {
-              HemoCellParticle &lParticle = particles[particle_grid[index][i]];
-              const hemo::Array<T, 3> dv = lParticle.sv.position - (b_particle + this->atomicLattice->getLocation());
-              const T distance = sqrt(dv[0] * dv[0] + dv[1] * dv[1] + dv[2] * dv[2]);
-              if (distance < br_cutoff)
-              {
-                const hemo::Array<T, 3> rfm = br_const * (1 / (distance / br_cutoff)) * (dv / distance);
-                lParticle.sv.force_repulsion = lParticle.sv.force_repulsion + rfm;
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-
-  void HemoCellParticleField::applyBoundaryAdhesionForce(HemoCell &hemocell)
-  {
-    if (!pg_up_to_date)
-    {
-      update_pg();
-    }
-    for (HemoCellParticle &particle : particles)
-    {
-      particle.sv.force_adhesion = {0., 0., 0.};
-    }
-    map<int, CellInformation> info_per_cell;
-    CellInformationFunctionals::calculateCellInformation(&hemocell, info_per_cell);
-    HemoCellGatheringFunctional<CellInformation>::gather(info_per_cell);
-    vector<vector<float>> distancesvectors;
-    distancesvectors.clear();
-    // vector<vector<float>> bonds;
-    //  cout<<"size of bonds" <<bonds.size()<<endl;
-    const T &br_cutoff = cellFields->boundaryAdhesionCutoff;
-    const T &br_const = cellFields->boundaryAdhesionConstant;
-    // Developed adhesion force based on stochastic model by  Nahid Rahmati
-    for (auto b_particle = boundaryParticles.begin(); b_particle != boundaryParticles.end(); ++b_particle)
-    {
-      int __index = b_particle - boundaryParticles.begin();
-      int y1 = b_particle->y - 1;
-      int y2 = b_particle->y + 1;
-      int x0 = b_particle->x;
-      int y0 = b_particle->y;
-      int z0 = b_particle->z;
-      int z1 = b_particle->z - 1;
-      int z2 = b_particle->z + 1;
-
-      if (y1 < 0 || y2 > this->atomicLattice->getNy() - 1)
-      { // cout<<"boundary:"<<__index<<endl;
-        continue;
-      }
-      if (z1 < 0 || z2 > this->atomicLattice->getNz() - 1)
-      { // cout<<"boundary:"<<__index<<endl;
-        continue;
-      }
-
-      if (this->atomicLattice->get(x0, y1, z0).getDynamics().isBoundary() && atomicLattice->get(x0, y2, z0).getDynamics().isBoundary() && atomicLattice->get(x0, y0, z1).getDynamics().isBoundary() && atomicLattice->get(x0, y0, z2).getDynamics().isBoundary())
-      {
-        // cout<<"boundary:"<<__index<<";" <<x0 <<";"<<y0<<";"<< z0 <<endl;
-        continue;
-      }
-      for (int x = b_particle->x - 2; x <= b_particle->x + 2; x++)
-      {
-        if (x < 0 || x > this->atomicLattice->getNx() - 1)
-        {
-          continue;
-        }
-
-        for (int y = b_particle->y - 2; y <= b_particle->y + 2; y++)
-        {
-          if (y < 0 || y > this->atomicLattice->getNy() - 1)
-          {
-            continue;
-          }
-          for (int z = b_particle->z - 2; z <= b_particle->z + 1; z++)
-          {
-            if (z < 0 || z > this->atomicLattice->getNz() - 2)
-            {
-              continue;
-            }
-            if (y > 7 && y < 30 && z > 7 && z < 30)
-            {
-              continue;
-            }
-            const int &index = grid_index(x, y, z);
-
-            for (unsigned int i = 0; i < particle_grid_size[index]; i++)
-            {
-              int in = particle_grid[index][i];
-              HemoCellParticle &lParticle = particles[particle_grid[index][i]];
-              const hemo::Array<T, 3> dv = lParticle.sv.position - (*b_particle + this->atomicLattice->getLocation());
-              int basecellId = info_per_cell[lParticle.sv.cellId].base_cell_id;
-              pluint ct = lParticle.sv.celltype;
-              if (ct == 0)
+              if (z < 0 || z > this->atomicLattice->getNz() - 1)
               {
                 continue;
               }
-
-              const T distance = sqrt(dv[0] * dv[0] + dv[1] * dv[1] + (dv[2]) * (dv[2]));
-              const T distance_normal = sqrt((dv[2] - 0.5) * (dv[2] - 0.5));
-              if (distance > 1)
+              const int &index = grid_index(x, y, z);
+              for (unsigned int i = 0; i < particle_grid_size[index]; i++)
               {
-                continue;
-              }
-
-              float dist2 = distance * 5e-7;
-              float dist2_n = distance_normal * 5e-07;
-              float df2 = 6.4e-9;
-              bool existed_bond = false;
-              int a = bonds.size();
-
-              if (bonds.size() != 0)
-              {
-                for (int j = 0; j < bonds.size(); j++)
+                HemoCellParticle &lParticle = particles[particle_grid[index][i]];
+                const hemo::Array<T, 3> dv = lParticle.sv.position - (b_particle + this->atomicLattice->getLocation());
+                const T distance = sqrt(dv[0] * dv[0] + dv[1] * dv[1] + dv[2] * dv[2]);
+                if (distance < br_cutoff)
                 {
-                  if ((bonds[j][0] == __index) && (bonds[j][2] == ct) && (bonds[j][3] == lParticle.sv.vertexId) && (bonds[j][4] == basecellId))
+                  const hemo::Array<T, 3> rfm = br_const * (1 / (distance / br_cutoff)) * (dv / distance);
+                  lParticle.sv.force_repulsion = lParticle.sv.force_repulsion + rfm;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    void HemoCellParticleField::applyBoundaryAdhesionForce(HemoCell & hemocell)
+    {
+      if (!pg_up_to_date)
+      {
+        update_pg();
+      }
+      for (HemoCellParticle &particle : particles)
+      {
+        particle.sv.force_adhesion = {0., 0., 0.};
+      }
+      map<int, CellInformation> info_per_cell;
+      CellInformationFunctionals::calculateCellInformation(&hemocell, info_per_cell);
+      HemoCellGatheringFunctional<CellInformation>::gather(info_per_cell);
+      vector<vector<float>> distancesvectors;
+      distancesvectors.clear();
+      // vector<vector<float>> bonds;
+      //  cout<<"size of bonds" <<bonds.size()<<endl;
+      const T &br_cutoff = cellFields->boundaryAdhesionCutoff;
+      const T &br_const = cellFields->boundaryAdhesionConstant;
+      // Developed adhesion force based on stochastic model by  Nahid Rahmati
+      for (auto b_particle = boundaryParticles.begin(); b_particle != boundaryParticles.end(); ++b_particle)
+      {
+        int __index = b_particle - boundaryParticles.begin();
+        int y1 = b_particle->y - 1;
+        int y2 = b_particle->y + 1;
+        int x0 = b_particle->x;
+        int y0 = b_particle->y;
+        int z0 = b_particle->z;
+        int z1 = b_particle->z - 1;
+        int z2 = b_particle->z + 1;
+
+        if (y1 < 0 || y2 > this->atomicLattice->getNy() - 1)
+        { // cout<<"boundary:"<<__index<<endl;
+          continue;
+        }
+        if (z1 < 0 || z2 > this->atomicLattice->getNz() - 1)
+        { // cout<<"boundary:"<<__index<<endl;
+          continue;
+        }
+
+        if (this->atomicLattice->get(x0, y1, z0).getDynamics().isBoundary() && atomicLattice->get(x0, y2, z0).getDynamics().isBoundary() && atomicLattice->get(x0, y0, z1).getDynamics().isBoundary() && atomicLattice->get(x0, y0, z2).getDynamics().isBoundary())
+        {
+          // cout<<"boundary:"<<__index<<";" <<x0 <<";"<<y0<<";"<< z0 <<endl;
+          continue;
+        }
+        for (int x = b_particle->x - 2; x <= b_particle->x + 2; x++)
+        {
+          if (x < 0 || x > this->atomicLattice->getNx() - 1)
+          {
+            continue;
+          }
+
+          for (int y = b_particle->y - 2; y <= b_particle->y + 2; y++)
+          {
+            if (y < 0 || y > this->atomicLattice->getNy() - 1)
+            {
+              continue;
+            }
+            for (int z = b_particle->z - 2; z <= b_particle->z + 1; z++)
+            {
+              if (z < 0 || z > this->atomicLattice->getNz() - 2)
+              {
+                continue;
+              }
+              if (y > 7 && y < 30 && z > 7 && z < 30)
+              {
+                continue;
+              }
+              const int &index = grid_index(x, y, z);
+
+              for (unsigned int i = 0; i < particle_grid_size[index]; i++)
+              {
+                int in = particle_grid[index][i];
+                HemoCellParticle &lParticle = particles[particle_grid[index][i]];
+                const hemo::Array<T, 3> dv = lParticle.sv.position - (*b_particle + this->atomicLattice->getLocation());
+                int basecellId = info_per_cell[lParticle.sv.cellId].base_cell_id;
+                pluint ct = lParticle.sv.celltype;
+                if (ct == 0)
+                {
+                  continue;
+                }
+
+                const T distance = sqrt(dv[0] * dv[0] + dv[1] * dv[1] + (dv[2]) * (dv[2]));
+                const T distance_normal = sqrt((dv[2] - 0.5) * (dv[2] - 0.5));
+                if (distance > 1)
+                {
+                  continue;
+                }
+
+                float dist2 = distance * 5e-7;
+                float dist2_n = distance_normal * 5e-07;
+                float df2 = 6.4e-9;
+                bool existed_bond = false;
+                int a = bonds.size();
+
+                if (bonds.size() != 0)
+                {
+                  for (int j = 0; j < bonds.size(); j++)
                   {
-                    bonds[j][5] = distance; // distance
-                    bonds[j][6] = distance_normal;
-                    existed_bond = true;
-                    float P_off;
-                    float P_random_break = (float)rand() / (float)(RAND_MAX);
-
-                    if (distance >= 3)
+                    if ((bonds[j][0] == __index) && (bonds[j][2] == ct) && (bonds[j][3] == lParticle.sv.vertexId) && (bonds[j][4] == basecellId))
                     {
-                      // cout<<"break happen due to oversize distance"<<endl;
-                      P_off = 1.0;
-                    }
-                    else
-                    {
-                      // calculate P_off for existed bond
+                      bonds[j][5] = distance; // distance
+                      bonds[j][6] = distance_normal;
+                      existed_bond = true;
+                      float P_off;
+                      float P_random_break = (float)rand() / (float)(RAND_MAX);
 
-                      float k_off0 = 100; // unstressed off rate      10   350                    			   (will be validated in future) xiao 2017
+                      if (distance >= 3)
+                      {
+                        // cout<<"break happen due to oversize distance"<<endl;
+                        P_off = 1.0;
+                      }
+                      else
+                      {
+                        // calculate P_off for existed bond
 
-                      float sigma_off = 5e-6;            // off strength       3e-7     0.0000003215625                   			   (will be validated in future) xiao 2017
-                      float kbT = 4.14 * (pow(10, -21)); // boltmann constant * temperature                  	(will be validated in future) xiao 2017
-                      float deltaT = 1e-7;               // time step of the simulation (time interval)        		   (will be validated in future) xiao 2017
-                      float k_off = k_off0 * exp(((sigma_off) * (dist2 - 5e-7) * (dist2 - 5e-7)) / (2 *
-                                                                                                    kbT)); // simplification: we used distance instead of (distance - equilibrium spring length )
-                      P_off = (1 - exp(-1 * k_off * deltaT));
-                      ;
-                      // cout<<"K_off: "<<k_off<<"; P_off: "<<P_off<<" dist2: "<< dist2 << endl;
-                    }
-                    if (P_off > P_random_break)
-                    {
+                        float k_off0 = 100; // unstressed off rate      10   350                    			   (will be validated in future) xiao 2017
 
-                      //   cout<<"break happens"<<"; P_off: "<<P_off<<" dist2: "<< dist2 << " dist2_n: "<< dist2_n<<endl;
-                      existed_bond = false;
-                      bonds.erase(bonds.begin() + j);
-                      j = j - 1;
+                        float sigma_off = 5e-6;            // off strength       3e-7     0.0000003215625                   			   (will be validated in future) xiao 2017
+                        float kbT = 4.14 * (pow(10, -21)); // boltmann constant * temperature                  	(will be validated in future) xiao 2017
+                        float deltaT = 1e-7;               // time step of the simulation (time interval)        		   (will be validated in future) xiao 2017
+                        float k_off = k_off0 * exp(((sigma_off) * (dist2 - 5e-7) * (dist2 - 5e-7)) / (2 *
+                                                                                                      kbT)); // simplification: we used distance instead of (distance - equilibrium spring length )
+                        P_off = (1 - exp(-1 * k_off * deltaT));
+                        ;
+                        // cout<<"K_off: "<<k_off<<"; P_off: "<<P_off<<" dist2: "<< dist2 << endl;
+                      }
+                      if (P_off > P_random_break)
+                      {
+
+                        //   cout<<"break happens"<<"; P_off: "<<P_off<<" dist2: "<< dist2 << " dist2_n: "<< dist2_n<<endl;
+                        existed_bond = false;
+                        bonds.erase(bonds.begin() + j);
+                        j = j - 1;
+                      }
+                      else
+                      {
+                        existed_bond = true;
+                      }
                     }
-                    else
+                    else if (/*(!(bonds[j][0]==__index) && ((bonds[j][2]==ct) &&(bonds[j][3]==lParticle.sv.vertexId) && (bonds[j][4]==basecellId))) || */ (!(bonds[j][0] == __index) && ((bonds[j][2] == ct) && (bonds[j][3] == lParticle.sv.vertexId) && (bonds[j][4] == basecellId))))
                     {
                       existed_bond = true;
                     }
                   }
-                  else if (/*(!(bonds[j][0]==__index) && ((bonds[j][2]==ct) &&(bonds[j][3]==lParticle.sv.vertexId) && (bonds[j][4]==basecellId))) || */ (!(bonds[j][0] == __index) && ((bonds[j][2] == ct) && (bonds[j][3] == lParticle.sv.vertexId) && (bonds[j][4] == basecellId))))
-                  {
-                    existed_bond = true;
-                  }
-                }
-              } // checking bond breaking finished
+                } // checking bond breaking finished
 
-              // probabilistic adhesion function (modified by Nahid n3rahmat@uwaterloo.ca)
-              if (distance < 3)
-              { // br_cutoff
+                // probabilistic adhesion function (modified by Nahid n3rahmat@uwaterloo.ca)
+                if (distance < 3)
+                { // br_cutoff
 
-                if (existed_bond == true)
-                {
-                  continue;
-                }
-                if (lParticle.sv.celltype != 0)
-                {
-                  // non-existed bonds that may be formed
-                  vector<float> local_a = {__index, in, ct, lParticle.sv.vertexId, basecellId, distance, distance_normal, b_particle->x, b_particle->y, b_particle->z, lParticle.sv.position[0], lParticle.sv.position[1], lParticle.sv.position[2]};
-                  distancesvectors.insert(distancesvectors.end(), local_a);
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-
-    std::sort(distancesvectors.begin(), distancesvectors.end(), [=](const vector<float> &v1, const vector<float> &v2)
-              { return v1[5] < v2[5]; });
-    int m = distancesvectors.size();
-    int n = distancesvectors[0].size();
-
-    for (int i = 0; i < distancesvectors.size(); i++)
-    {
-      for (int j = i; j < distancesvectors.size(); j++)
-      {
-        if (i == j)
-        {
-          continue;
-        }
-        if (distancesvectors[i][2] == distancesvectors[j][2] && distancesvectors[i][3] == distancesvectors[j][3] && distancesvectors[i][4] == distancesvectors[j][4])
-        {
-          distancesvectors.erase(distancesvectors.begin() + j);
-          i = 0;
-          j = 0;
-        }
-        // if ((distancesvectors[i][1]==distancesvectors[j][1]) && (distancesvectors[i][2]==distancesvectors[j][2]) && (distancesvectors[i][3]==distancesvectors[j][3])){distancesvectors.erase(distancesvectors.begin()+j); i=0;
-        //  j = 0;}
-      }
-    }
-    /* std::sort(distancesvectors.begin(), distancesvectors.end(), [=] (const vector<float>& v1, const vector<float>& v2) {
-         return v1[6] < v2[6];
-     });*/
-    int a = distancesvectors.size();
-    // cout<<"distance size"<<a<< endl;
-    for (int i = 0; i < distancesvectors.size(); i++)
-    {
-
-      float k_on0 = 10000;   // unstressed on rate    12050000     350000                     	       (will be validated in future) xiao 2017
-      float sigma_on = 5e-7; // on strength        0.00000065625                         			   (will be validated in future) xiao 2017
-      float kbT = 4.14 * (pow(10,
-                              -21)); // boltmann constant * temperature                  			   (will be validated in future) xiao 2017
-      float deltaT = 1e-7;           // time step of the simulation (time interval)        		   (will be validated in future) xiao 2017
-      float P_on;
-      float dist2 = distancesvectors[i][5] * 5e-07;
-      float dist2_n = distancesvectors[i][6] * 5e-07;
-      float k_on = k_on0 * exp((-1 * sigma_on * (dist2 - 5e-7) * (dist2 - 5e-7)) / (2 *
-                                                                                    kbT)); // simplification: we used distance instead of (distance - equilibrium spring length )
-      P_on = (1 - exp(-1 * k_on * deltaT));
-      if (dist2_n < 50e-9)
-      { /*P_on =1; */
-      }
-      // cout<<"K_on: "<<k_on<<"; P_on: "<<P_on<<" dist2: "<< dist2 << endl;
-      float P_random_form = (float)rand() / (float)(RAND_MAX);
-      if (P_on > P_random_form)
-      {
-        auto temp = vector<float>{distancesvectors.at(i).begin(), distancesvectors.at(i).begin() + 7};
-        bonds.insert(bonds.end(), temp);
-      }
-    }
-    // cout<< "size bond:"<< bonds.size() <<endl;
-    for (int i = 0; i < bonds.size(); i++)
-    {
-
-      int x1 = boundaryParticles[bonds[i][0]].x;
-      int y1 = boundaryParticles[bonds[i][0]].y;
-      int z1 = boundaryParticles[bonds[i][0]].z;
-
-      // cout<<"x1:"<< x1 <<"; y1: " << y1 << "; z1:" <<z1 <<endl;
-      for (int x = x1 - 2; x <= x1 + 2; x++)
-      {
-        if (x < 0 || x > this->atomicLattice->getNx() - 1)
-        {
-          continue;
-        }
-        for (int y = y1 - 2; y <= y1 + 2; y++)
-        {
-          if (y < 0 || y > this->atomicLattice->getNy() - 1)
-          {
-            continue;
-          }
-          for (int z = z1 - 2; z <= z1 + 2; z++)
-          {
-            if (z < 0 || z > this->atomicLattice->getNz() - 1)
-            {
-              continue;
-            }
-            const int &index = grid_index(x, y, z);
-            for (unsigned int j = 0; j < particle_grid_size[index]; j++)
-            {
-              HemoCellParticle &lParticle = particles[particle_grid[index][j]];
-              auto b_particle = boundaryParticles.begin() + bonds[i][0];
-              const hemo::Array<T, 3> dv =
-                  lParticle.sv.position - (*b_particle + this->atomicLattice->getLocation());
-              int basecellId = info_per_cell[lParticle.sv.cellId].base_cell_id;
-              pluint ct = lParticle.sv.celltype;
-              if (ct == 0)
-              {
-                continue;
-              }
-              hemo::Array<T, 3> dv2 = {dv[0], dv[1], dv[2] - 0.5};
-              const T distance = sqrt(dv[0] * dv[0] + dv[1] * dv[1] + (dv[2]) * (dv[2]));
-              float dist2 = distance * 5e-07;
-              float df2 = 6.4e-9;
-              // cout<<"x1:"<< dv[0] <<"; y1: " << dv[1] << "; z1:" <<dv[2] <<endl;
-              if ((bonds[i][2] == ct) && (bonds[i][3] == lParticle.sv.vertexId) &&
-                  (bonds[i][4] == basecellId))
-              {
-                const hemo::Array<T, 3> rfm =
-                    -1e-3 *
-                    (dist2 - 5e-7) * (dv2 / distance) / df2;
-
-                if (ct == 1)
-                {
-                  lParticle.sv.force_adhesion = lParticle.sv.force_adhesion + 1 * (rfm / 1); /// 5
-                }
-                else
-                {
-                  lParticle.sv.force_adhesion = lParticle.sv.force_adhesion + 1 * rfm;
-                }
-
-                // cout << "rfm: " << rfm[0] << ";" << rfm[1] << ";" << rfm[2] << "; lparticle_vertexid: " << lParticle.sv.vertexId << endl;
-              }
-            }
-          }
-        }
-      }
-    }
-    //   cout<<"size of bonds end of iteration: " <<bonds.size()<<endl;
-  }
-
-  void HemoCellParticleField::populateBindingSites(plb::Box3D &domain_)
-  {
-
-    // Translate domain to make sense in the lattice domain.
-    Dot3D shift = this->getLocation() - this->atomicLattice->getLocation();
-    Box3D domain = domain_.shift(shift.x, shift.y, shift.z);
-
-    for (int x = domain.x0; x <= domain.x1; x++)
-    {
-      for (int y = domain.y0; y <= domain.y1; y++)
-      {
-        for (int z = domain.z0; z <= domain.z1; z++)
-        {
-          if (this->atomicLattice->get(x, y, z).getDynamics().isBoundary())
-          {
-            for (int xx = x - 1; xx <= x + 1; xx++)
-            {
-              if (xx < 0 || xx > this->atomicLattice->getNx() - 1)
-              {
-                continue;
-              }
-              for (int yy = y - 1; yy <= y + 1; yy++)
-              {
-                if (yy < 0 || yy > this->atomicLattice->getNy() - 1)
-                {
-                  continue;
-                }
-                for (int zz = z - 1; zz <= z + 1; zz++)
-                {
-                  if (zz < 0 || zz > this->atomicLattice->getNz() - 1)
+                  if (existed_bond == true)
                   {
                     continue;
                   }
-                  if (!this->atomicLattice->get(xx, yy, zz).getDynamics().isBoundary())
+                  if (lParticle.sv.celltype != 0)
                   {
-                    bindingFieldHelper::get(*cellFields).add(*this, {x, y, z});
-                    goto end_inner_loop;
+                    // non-existed bonds that may be formed
+                    vector<float> local_a = {__index, in, ct, lParticle.sv.vertexId, basecellId, distance, distance_normal, b_particle->x, b_particle->y, b_particle->z, lParticle.sv.position[0], lParticle.sv.position[1], lParticle.sv.position[2]};
+                    distancesvectors.insert(distancesvectors.end(), local_a);
                   }
                 }
               }
             }
           }
-        end_inner_loop:;
         }
       }
-    }
-  }
 
-  T HemoCellParticleField::eigenValueFromCell(plb::Cell<T, DESCRIPTOR> &cell)
-  {
-    plb::Array<T, SymmetricTensor<T, DESCRIPTOR>::n> element;
-    cell.computePiNeq(element);
-    T omega = cell.getDynamics().getOmega();
-    T rhoBar = cell.getDynamics().computeRhoBar(cell);
-    T prefactor = -omega * DESCRIPTOR<T>::invCs2 *
-                  DESCRIPTOR<T>::invRho(rhoBar) / (T)2;
-    for (int iTensor = 0; iTensor < SymmetricTensor<T, DESCRIPTOR>::n; ++iTensor)
-    {
-      element[iTensor] *= prefactor;
-    }
+      std::sort(distancesvectors.begin(), distancesvectors.end(), [=](const vector<float> &v1, const vector<float> &v2)
+                { return v1[5] < v2[5]; });
+      int m = distancesvectors.size();
+      int n = distancesvectors[0].size();
 
-    Array<Array<T, 3>, 3> S; // Strain-rate tensor (symmetric).
-    S[0][0] = element[0];    // s[xx];
-    S[0][1] = element[1];    // s[xy];
-    S[0][2] = element[2];    // s[xz];
-
-    S[1][0] = element[1]; // s[yx];
-    S[1][1] = element[3]; // s[yy];
-    S[1][2] = element[4]; // s[yz];
-
-    S[2][0] = element[2]; // s[zx];
-    S[2][1] = element[4]; // s[zy];
-    S[2][2] = element[5]; // s[zz];
-
-    Eigen::Matrix<T, 3, 3> A;
-    for (plint i = 0; i < 3; i++)
-    {
-      for (plint j = 0; j < 3; j++)
+      for (int i = 0; i < distancesvectors.size(); i++)
       {
-        A(i, j) = S[i][j];
-      }
-    }
-
-    bool computeEigenvectors = false;
-    Eigen::EigenSolver<Eigen::Matrix<T, 3, 3>> es(A, computeEigenvectors);
-    std::vector<T> lambda(3);
-    lambda[0] = std::real(es.eigenvalues()[0]);
-    lambda[1] = std::real(es.eigenvalues()[1]);
-    lambda[2] = std::real(es.eigenvalues()[2]);
-    std::sort(lambda.begin(), lambda.end());
-
-    //    Array<Array<T,3>,3> x;  // Eigenvectors of S.
-    //    Array<T,3> d;           // Eigenvalues of S.
-    //    Eigen::eigenDecomposition(S, x, d);
-    //    std::vector<T> lambda(3);
-    //    lambda[0] = d[0];
-    //    lambda[1] = d[1];
-    //    lambda[2] = d[2];
-    //   std::sort(lambda.begin(), lambda.end());
-    T tresca = (lambda[2] - lambda[0]) / 2;
-    return tresca;
-  }
-
-  void HemoCellParticleField::prepareSolidification()
-  {
-#ifdef SOLIDIFY_MECHANICS
-    for (HemoCellField *type : cellFields->cellFields)
-    {
-      ppc_up_to_date = false;
-      if (type->doSolidifyMechanics)
-      {
-
-        // Invoke cell-type specific solidification mechanics implementation.
-        type->mechanics->solidifyMechanics(get_particles_per_cell(), particles, this->atomicLattice, this->CEPAClattice, type->ctype, *this);
-      }
-    }
-#else
-    hlog << "(HemoCellParticleField) prepareSolidification called but SOLIDIFY_MECHANICS not enabled" << endl;
-    exit(1);
-#endif
-  }
-
-  void HemoCellParticleField::solidifyCells()
-  {
-#ifdef SOLIDIFY_MECHANICS
-
-    // Remove any to be removed particles (tagged with `tag == 1`).
-    removeParticles(1);
-    if (!pg_up_to_date)
-    {
-      update_pg();
-    }
-
-    // Detect particles to be solidified by looping over a block of 3x3 LBM cells
-    // around each binding site. When a cell statisfies both:
-    // - close enough in space to a binding site,
-    // - shows a minimum tresca stress,
-    // the particle is labelled to be solified.
-    for (const Dot3D &b_particle : bindingSites)
-    {
-      for (int x = b_particle.x - 1; x <= b_particle.x + 1; x++)
-      {
-        if (x < 0 || x > this->atomicLattice->getNx() - 1)
+        for (int j = i; j < distancesvectors.size(); j++)
         {
-          continue;
-        }
-
-        for (int y = b_particle.y - 1; y <= b_particle.y + 1; y++)
-        {
-          if (y < 0 || y > this->atomicLattice->getNy() - 1)
+          if (i == j)
           {
             continue;
           }
-
-          for (int z = b_particle.z - 1; z <= b_particle.z + 1; z++)
+          if (distancesvectors[i][2] == distancesvectors[j][2] && distancesvectors[i][3] == distancesvectors[j][3] && distancesvectors[i][4] == distancesvectors[j][4])
           {
-            if (z < 0 || z > this->atomicLattice->getNz() - 1)
+            distancesvectors.erase(distancesvectors.begin() + j);
+            i = 0;
+            j = 0;
+          }
+          // if ((distancesvectors[i][1]==distancesvectors[j][1]) && (distancesvectors[i][2]==distancesvectors[j][2]) && (distancesvectors[i][3]==distancesvectors[j][3])){distancesvectors.erase(distancesvectors.begin()+j); i=0;
+          //  j = 0;}
+        }
+      }
+      /* std::sort(distancesvectors.begin(), distancesvectors.end(), [=] (const vector<float>& v1, const vector<float>& v2) {
+           return v1[6] < v2[6];
+       });*/
+      int a = distancesvectors.size();
+      // cout<<"distance size"<<a<< endl;
+      for (int i = 0; i < distancesvectors.size(); i++)
+      {
+
+        float k_on0 = 10000;   // unstressed on rate    12050000     350000                     	       (will be validated in future) xiao 2017
+        float sigma_on = 5e-7; // on strength        0.00000065625                         			   (will be validated in future) xiao 2017
+        float kbT = 4.14 * (pow(10,
+                                -21)); // boltmann constant * temperature                  			   (will be validated in future) xiao 2017
+        float deltaT = 1e-7;           // time step of the simulation (time interval)        		   (will be validated in future) xiao 2017
+        float P_on;
+        float dist2 = distancesvectors[i][5] * 5e-07;
+        float dist2_n = distancesvectors[i][6] * 5e-07;
+        float k_on = k_on0 * exp((-1 * sigma_on * (dist2 - 5e-7) * (dist2 - 5e-7)) / (2 *
+                                                                                      kbT)); // simplification: we used distance instead of (distance - equilibrium spring length )
+        P_on = (1 - exp(-1 * k_on * deltaT));
+        if (dist2_n < 50e-9)
+        { /*P_on =1; */
+        }
+        // cout<<"K_on: "<<k_on<<"; P_on: "<<P_on<<" dist2: "<< dist2 << endl;
+        float P_random_form = (float)rand() / (float)(RAND_MAX);
+        if (P_on > P_random_form)
+        {
+          auto temp = vector<float>{distancesvectors.at(i).begin(), distancesvectors.at(i).begin() + 7};
+          bonds.insert(bonds.end(), temp);
+        }
+      }
+      // cout<< "size bond:"<< bonds.size() <<endl;
+      for (int i = 0; i < bonds.size(); i++)
+      {
+
+        int x1 = boundaryParticles[bonds[i][0]].x;
+        int y1 = boundaryParticles[bonds[i][0]].y;
+        int z1 = boundaryParticles[bonds[i][0]].z;
+
+        // cout<<"x1:"<< x1 <<"; y1: " << y1 << "; z1:" <<z1 <<endl;
+        for (int x = x1 - 2; x <= x1 + 2; x++)
+        {
+          if (x < 0 || x > this->atomicLattice->getNx() - 1)
+          {
+            continue;
+          }
+          for (int y = y1 - 2; y <= y1 + 2; y++)
+          {
+            if (y < 0 || y > this->atomicLattice->getNy() - 1)
             {
               continue;
             }
-
-            const int &index = grid_index(x, y, z);
-
-            for (unsigned int i = 0; i < particle_grid_size[index]; i++)
+            for (int z = z1 - 2; z <= z1 + 2; z++)
             {
-              HemoCellParticle &lParticle = particles[particle_grid[index][i]];
-              const hemo::Array<T, 3> dv = lParticle.sv.position - (b_particle + this->atomicLattice->getLocation());
-              const T distance = sqrt(dv[0] * dv[0] + dv[1] * dv[1] + dv[2] * dv[2]);
-              T tresca = eigenValueFromCell(this->atomicLattice->get(x, y, z));
-
-              // FIXME: both user-defined constants could be extracted outside the loop.
-              if ((distance <= (*cellFields)[lParticle.sv.celltype]->mechanics->cfg["MaterialModel"]["distanceThreshold"].read<T>()) && (abs(tresca / 1e-7) > (*cellFields)[lParticle.sv.celltype]->mechanics->cfg["MaterialModel"]["shearThreshold"].read<T>()))
+              if (z < 0 || z > this->atomicLattice->getNz() - 1)
               {
-                lParticle.sv.solidify = true;
+                continue;
+              }
+              const int &index = grid_index(x, y, z);
+              for (unsigned int j = 0; j < particle_grid_size[index]; j++)
+              {
+                HemoCellParticle &lParticle = particles[particle_grid[index][j]];
+                auto b_particle = boundaryParticles.begin() + bonds[i][0];
+                const hemo::Array<T, 3> dv =
+                    lParticle.sv.position - (*b_particle + this->atomicLattice->getLocation());
+                int basecellId = info_per_cell[lParticle.sv.cellId].base_cell_id;
+                pluint ct = lParticle.sv.celltype;
+                if (ct == 0)
+                {
+                  continue;
+                }
+                hemo::Array<T, 3> dv2 = {dv[0], dv[1], dv[2] - 0.5};
+                const T distance = sqrt(dv[0] * dv[0] + dv[1] * dv[1] + (dv[2]) * (dv[2]));
+                float dist2 = distance * 5e-07;
+                float df2 = 6.4e-9;
+                // cout<<"x1:"<< dv[0] <<"; y1: " << dv[1] << "; z1:" <<dv[2] <<endl;
+                if ((bonds[i][2] == ct) && (bonds[i][3] == lParticle.sv.vertexId) &&
+                    (bonds[i][4] == basecellId))
+                {
+                  const hemo::Array<T, 3> rfm =
+                      -1e-3 *
+                      (dist2 - 5e-7) * (dv2 / distance) / df2;
+
+                  if (ct == 1)
+                  {
+                    lParticle.sv.force_adhesion = lParticle.sv.force_adhesion + 1 * (rfm / 1); /// 5
+                  }
+                  else
+                  {
+                    lParticle.sv.force_adhesion = lParticle.sv.force_adhesion + 1 * rfm;
+                  }
+
+                  // cout << "rfm: " << rfm[0] << ";" << rfm[1] << ";" << rfm[2] << "; lparticle_vertexid: " << lParticle.sv.vertexId << endl;
+                }
               }
             }
           }
         }
       }
+      //   cout<<"size of bonds end of iteration: " <<bonds.size()<<endl;
     }
+
+    void HemoCellParticleField::populateBindingSites(plb::Box3D & domain_)
+    {
+
+      // Translate domain to make sense in the lattice domain.
+      Dot3D shift = this->getLocation() - this->atomicLattice->getLocation();
+      Box3D domain = domain_.shift(shift.x, shift.y, shift.z);
+
+      for (int x = domain.x0; x <= domain.x1; x++)
+      {
+        for (int y = domain.y0; y <= domain.y1; y++)
+        {
+          for (int z = domain.z0; z <= domain.z1; z++)
+          {
+            if (this->atomicLattice->get(x, y, z).getDynamics().isBoundary())
+            {
+              for (int xx = x - 1; xx <= x + 1; xx++)
+              {
+                if (xx < 0 || xx > this->atomicLattice->getNx() - 1)
+                {
+                  continue;
+                }
+                for (int yy = y - 1; yy <= y + 1; yy++)
+                {
+                  if (yy < 0 || yy > this->atomicLattice->getNy() - 1)
+                  {
+                    continue;
+                  }
+                  for (int zz = z - 1; zz <= z + 1; zz++)
+                  {
+                    if (zz < 0 || zz > this->atomicLattice->getNz() - 1)
+                    {
+                      continue;
+                    }
+                    if (!this->atomicLattice->get(xx, yy, zz).getDynamics().isBoundary())
+                    {
+                      bindingFieldHelper::get(*cellFields).add(*this, {x, y, z});
+                      goto end_inner_loop;
+                    }
+                  }
+                }
+              }
+            }
+          end_inner_loop:;
+          }
+        }
+      }
+    }
+
+    T HemoCellParticleField::eigenValueFromCell(plb::Cell<T, DESCRIPTOR> & cell)
+    {
+      plb::Array<T, SymmetricTensor<T, DESCRIPTOR>::n> element;
+      cell.computePiNeq(element);
+      T omega = cell.getDynamics().getOmega();
+      T rhoBar = cell.getDynamics().computeRhoBar(cell);
+      T prefactor = -omega * DESCRIPTOR<T>::invCs2 *
+                    DESCRIPTOR<T>::invRho(rhoBar) / (T)2;
+      for (int iTensor = 0; iTensor < SymmetricTensor<T, DESCRIPTOR>::n; ++iTensor)
+      {
+        element[iTensor] *= prefactor;
+      }
+
+      Array<Array<T, 3>, 3> S; // Strain-rate tensor (symmetric).
+      S[0][0] = element[0];    // s[xx];
+      S[0][1] = element[1];    // s[xy];
+      S[0][2] = element[2];    // s[xz];
+
+      S[1][0] = element[1]; // s[yx];
+      S[1][1] = element[3]; // s[yy];
+      S[1][2] = element[4]; // s[yz];
+
+      S[2][0] = element[2]; // s[zx];
+      S[2][1] = element[4]; // s[zy];
+      S[2][2] = element[5]; // s[zz];
+
+      Eigen::Matrix<T, 3, 3> A;
+      for (plint i = 0; i < 3; i++)
+      {
+        for (plint j = 0; j < 3; j++)
+        {
+          A(i, j) = S[i][j];
+        }
+      }
+
+      bool computeEigenvectors = false;
+      Eigen::EigenSolver<Eigen::Matrix<T, 3, 3>> es(A, computeEigenvectors);
+      std::vector<T> lambda(3);
+      lambda[0] = std::real(es.eigenvalues()[0]);
+      lambda[1] = std::real(es.eigenvalues()[1]);
+      lambda[2] = std::real(es.eigenvalues()[2]);
+      std::sort(lambda.begin(), lambda.end());
+
+      //    Array<Array<T,3>,3> x;  // Eigenvectors of S.
+      //    Array<T,3> d;           // Eigenvalues of S.
+      //    Eigen::eigenDecomposition(S, x, d);
+      //    std::vector<T> lambda(3);
+      //    lambda[0] = d[0];
+      //    lambda[1] = d[1];
+      //    lambda[2] = d[2];
+      //   std::sort(lambda.begin(), lambda.end());
+      T tresca = (lambda[2] - lambda[0]) / 2;
+      return tresca;
+    }
+
+    void HemoCellParticleField::prepareSolidification()
+    {
+#ifdef SOLIDIFY_MECHANICS
+      for (HemoCellField *type : cellFields->cellFields)
+      {
+        ppc_up_to_date = false;
+        if (type->doSolidifyMechanics)
+        {
+
+          // Invoke cell-type specific solidification mechanics implementation.
+          type->mechanics->solidifyMechanics(get_particles_per_cell(), particles, this->atomicLattice, this->CEPAClattice, type->ctype, *this);
+        }
+      }
 #else
-    hlog << "(HemoCellParticleField) SolidifyCells called but SOLIDIFY_MECHANICS not enabled" << endl;
-    exit(1);
+      hlog << "(HemoCellParticleField) prepareSolidification called but SOLIDIFY_MECHANICS not enabled" << endl;
+      exit(1);
 #endif
-  }
+    }
 
-  HemoCellParticleDataTransfer &HemoCellParticleField::getDataTransfer()
-  {
-    return particleDataTransfer;
-  }
-  HemoCellParticleDataTransfer const &HemoCellParticleField::getDataTransfer() const
-  {
-    return particleDataTransfer;
-  }
+    void HemoCellParticleField::solidifyCells()
+    {
+#ifdef SOLIDIFY_MECHANICS
 
-  std::string HemoCellParticleField::getBlockName()
-  {
-    return std::string("HemoParticleField3D");
-  }
+      // Remove any to be removed particles (tagged with `tag == 1`).
+      removeParticles(1);
+      if (!pg_up_to_date)
+      {
+        update_pg();
+      }
 
-  HemoCellFields *HemoCellParticleField::cellFields = 0;
-}
+      // Detect particles to be solidified by looping over a block of 3x3 LBM cells
+      // around each binding site. When a cell statisfies both:
+      // - close enough in space to a binding site,
+      // - shows a minimum tresca stress,
+      // the particle is labelled to be solified.
+      for (const Dot3D &b_particle : bindingSites)
+      {
+        for (int x = b_particle.x - 1; x <= b_particle.x + 1; x++)
+        {
+          if (x < 0 || x > this->atomicLattice->getNx() - 1)
+          {
+            continue;
+          }
+
+          for (int y = b_particle.y - 1; y <= b_particle.y + 1; y++)
+          {
+            if (y < 0 || y > this->atomicLattice->getNy() - 1)
+            {
+              continue;
+            }
+
+            for (int z = b_particle.z - 1; z <= b_particle.z + 1; z++)
+            {
+              if (z < 0 || z > this->atomicLattice->getNz() - 1)
+              {
+                continue;
+              }
+
+              const int &index = grid_index(x, y, z);
+
+              for (unsigned int i = 0; i < particle_grid_size[index]; i++)
+              {
+                HemoCellParticle &lParticle = particles[particle_grid[index][i]];
+                const hemo::Array<T, 3> dv = lParticle.sv.position - (b_particle + this->atomicLattice->getLocation());
+                const T distance = sqrt(dv[0] * dv[0] + dv[1] * dv[1] + dv[2] * dv[2]);
+                T tresca = eigenValueFromCell(this->atomicLattice->get(x, y, z));
+
+                // FIXME: both user-defined constants could be extracted outside the loop.
+                if ((distance <= (*cellFields)[lParticle.sv.celltype]->mechanics->cfg["MaterialModel"]["distanceThreshold"].read<T>()) && (abs(tresca / 1e-7) > (*cellFields)[lParticle.sv.celltype]->mechanics->cfg["MaterialModel"]["shearThreshold"].read<T>()))
+                {
+                  lParticle.sv.solidify = true;
+                }
+              }
+            }
+          }
+        }
+      }
+#else
+      hlog << "(HemoCellParticleField) SolidifyCells called but SOLIDIFY_MECHANICS not enabled" << endl;
+      exit(1);
+#endif
+    }
+
+    HemoCellParticleDataTransfer &HemoCellParticleField::getDataTransfer()
+    {
+      return particleDataTransfer;
+    }
+    HemoCellParticleDataTransfer const &HemoCellParticleField::getDataTransfer() const
+    {
+      return particleDataTransfer;
+    }
+
+    std::string HemoCellParticleField::getBlockName()
+    {
+      return std::string("HemoParticleField3D");
+    }
+
+    HemoCellFields *HemoCellParticleField::cellFields = 0;
+  }
