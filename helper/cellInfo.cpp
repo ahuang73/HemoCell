@@ -170,7 +170,6 @@ void CellInformationFunctionals::CellType::processGenericBlocks(Box3D domain, st
 void CellInformationFunctionals::allCellInformation::processGenericBlocks(plb::Box3D domain, std::vector<plb::AtomicBlock3D*> blocks) {
   HemoCellParticleField* pf = dynamic_cast<HemoCellParticleField*>(blocks[0]);
   const map<int,vector<int>> & ppc = pf->get_particles_per_cell();
-  bool secreteCytokine = 1;
   
   for (const auto & pair : pf->get_lpc()) {
     const int & cid = pair.first;
@@ -209,10 +208,7 @@ void CellInformationFunctionals::allCellInformation::processGenericBlocks(plb::B
       bbox[3] = bbox[3] < particle->sv.position[1] ? particle->sv.position[1] : bbox[3];
       bbox[4] = bbox[4] > particle->sv.position[2] ? particle->sv.position[2] : bbox[4];
       bbox[5] = bbox[5] < particle->sv.position[2] ? particle->sv.position[2] : bbox[5];
-      
-      if(particle->sv.secreteCytokine == 1){
-        secreteCytokine = 1;
-      }
+
       //position
       position += particle->sv.position;
       
@@ -239,7 +235,7 @@ void CellInformationFunctionals::allCellInformation::processGenericBlocks(plb::B
 
       //area
       total_area += computeTriangleArea(v0,v1,v2);  
-      
+
       //Volume
       const T v210 = v2[0]*v1[1]*v0[2];
       const T v120 = v1[0]*v2[1]*v0[2];
@@ -258,7 +254,6 @@ void CellInformationFunctionals::allCellInformation::processGenericBlocks(plb::B
     if (!info_per_cell[cid].centerLocal) {
       info_per_cell[cid].centerLocal = pf->isContainedABS(info_per_cell[cid].position,pf->localDomain);
     }
-    info_per_cell[cid].secreteCytokine = 1;
     info_per_cell[cid].stretch = max_stretch;
     info_per_cell[cid].blockId = pf->atomicBlockId;
     info_per_cell[cid].cellType = pf->particles[pf->get_particles_per_cell().at(cid)[0]].sv.celltype;
