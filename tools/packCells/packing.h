@@ -373,7 +373,7 @@ void Packing::init_cylinder() {
 	int ipart = 0;
 	for (int is = 0; is < NumSpecies; is++)
 		for (int ip = 0; ip < species[is]->getNum(); ip++)
-			particles[ipart++] = new Ellipsoid (species[is], Box,  No_cells_z/2, No_cells_z/2, Sizing);
+			particles[ipart++] = new Ellipsoid (species[is], Box, Sizing);
 
 	Link_head = new int [No_cells];
 	Link_list = new int [NumParts];

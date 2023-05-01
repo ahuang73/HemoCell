@@ -68,15 +68,15 @@ protected:
 public:
 	Ellipsoid() {}
 	Ellipsoid(Species* k, vector3 box) : kind(k), q(vector3(0.0,0.0,0.0)) { pos.random().scale(box); }
-	Ellipsoid(Species* k, vector3 box, double ycirc, double radiusCyl, double Sizing )  : kind(k), q(vector3(0.0,0.0,0.0))
+	Ellipsoid(Species* k, vector3 box, double Sizing )  : kind(k), q(vector3(0.0,0.0,0.0))
 	{ 
 		pos.random().scale(box);
 		double iZ = get_pos()[2];
 		double iY = get_pos()[1];
 		double iX = get_pos()[0];
-		double refDirN = (100/2); //divide by 2 for lu to um
+		double refDirN = (100)*Sizing;
 		double amplitude = (refDirN)/2;
-		double Cfactor = 2;
+		double Cfactor = 2*Sizing;
 
 		double L_constr = 3*refDirN;
 		double x_start = 0;
@@ -86,10 +86,10 @@ public:
 		double ny = (2*amplitude+nz+Cfactor);
 
 		double xcirc = ((nz)/2); //0.5 for the padding around vessel?
-		double radius = (nz-Cfactor);
+		double radius = (nz-Cfactor)/2;
 
-		while( (iZ/Sizing-xcirc)*(iZ/Sizing-xcirc) + (iY/Sizing-(amplitude*std::cos((2*(iX/Sizing)*std::acos(-1))/L_constr)+amplitude+radius))*(iY/Sizing-(amplitude*std::cos((2*(iX/Sizing)*std::acos(-1))/L_constr)+amplitude+radius))>= radius*radius 
-		|| iX/Sizing < 0 || iX/Sizing>=nx){
+		while( 
+			(iZ-xcirc)*(iZ-xcirc) + (iY-(amplitude*std::cos((2*(iX)*std::acos(-1))/L_constr)+amplitude+radius))*(iY-(amplitude*std::cos((2*(iX)*std::acos(-1))/L_constr)+amplitude+radius))>= radius*radius){
 			pos.random().scale(box);
 			iZ = get_pos()[2];
 			iY = get_pos()[1];
