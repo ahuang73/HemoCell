@@ -907,11 +907,11 @@ namespace hemo
           else if ((cells1 == 2 && cells2 == 3))                                                                                                                          \
           {                                                                                                                                                               \
             lParticle.sv.force_repulsion = lParticle.sv.force_repulsion + (rfm);                                                                                          \
-            nParticle.sv.force_repulsion = nParticle.sv.force_repulsion - (rfm);                                                                                          \
+            nParticle.sv.force_repulsion = nParticle.sv.force_repulsion - (rfm*45);                                                                                     \
           }                                                                                                                                                               \
           else if ((cells1 == 3 && cells2 == 2))                                                                                                                          \
           {                                                                                                                                                               \
-            lParticle.sv.force_repulsion = lParticle.sv.force_repulsion + (rfm);                                                                                          \
+            lParticle.sv.force_repulsion = lParticle.sv.force_repulsion + (rfm*45);                                                                                     \
             nParticle.sv.force_repulsion = nParticle.sv.force_repulsion - (rfm);                                                                                          \
           }                                                                                                                                                               \
         }                                                                                                                                                                 \
@@ -1146,7 +1146,6 @@ namespace hemo
     CellInformationFunctionals::calculateCellInformation(hemocell, info_per_cell);
     HemoCellGatheringFunctional<CellInformation>::gather(info_per_cell);
     unsigned char typeNKCnumber = (*cellFields)["NKC"]->ctype;
-    unsigned char typeCTLnumber = (*cellFields)["CTL"]->ctype;
     unsigned char typeCTCnumber = (*cellFields)["CTC"]->ctype;
 
     vector<CellInformation> NKCList;
@@ -1154,8 +1153,8 @@ namespace hemo
     vector<CellInformation> nearestCTC;
 
     bool randomWalk = true; //**a debug variable, set to false to have NKCs move directly towards CTCs
-    
-    //Loops around all the cell information and adds CTCs NKCsto vectors
+
+    // Loops around all the cell information and adds CTCs NKCsto vectors
     for (auto cell = info_per_cell.begin(); cell != info_per_cell.end(); cell++)
     {
       if (cell->second.cellType == typeCTCnumber)
@@ -1167,13 +1166,13 @@ namespace hemo
         NKCList.push_back(cell->second);
       }
     }
-  
+
     if (CTCList.empty())
     {
       return;
     }
 
-    //Checking for nearest CTC to each natural killer cell
+    // Checking for nearest CTC to each natural killer cell
     for (int i = 0; i < NKCList.size(); i++)
     {
       hemo::Array<T, 3> NKCPos = NKCList[i].position;
@@ -1216,43 +1215,46 @@ namespace hemo
         T y = NKCPos[1] - CTCPos[1];
         T z = NKCPos[2] - CTCPos[2];
         T distance = std::sqrt(x * x + y * y + z * z);
-
+        if(hemocell->iter%100 == 0)
+          std::cout<<"DISTANCE: " << distance<<std::endl;
         if (distance <= 20) // Stops search if the center of each NKC/CTC is too far, 20 is just a safe estimate
         {
+          T minDistance = 30;
           vector<int> NKCparticles = get_particles_per_cell().at(NKCList[j].base_cell_id);
           for (int CTC = 0; CTC < CTCparticles.size(); CTC++)
           {
             for (int NKC = 0; NKC < NKCparticles.size(); NKC++)
             {
-              if (particles[CTCparticles[CTC]].sv.cellId != CTCList[i].base_cell_id)
-              {
-                std::cout << "INCORRECT PARTICLE FINDING" << std::endl;
-              }
               T particleDistance = std::sqrt(
                   (particles[CTCparticles[CTC]].sv.position[0] - particles[NKCparticles[NKC]].sv.position[0]) * (particles[CTCparticles[CTC]].sv.position[0] - particles[NKCparticles[NKC]].sv.position[0]) +
                   (particles[CTCparticles[CTC]].sv.position[1] - particles[NKCparticles[NKC]].sv.position[1]) * (particles[CTCparticles[CTC]].sv.position[1] - particles[NKCparticles[NKC]].sv.position[1]) +
                   (particles[CTCparticles[CTC]].sv.position[2] - particles[NKCparticles[NKC]].sv.position[2]) * (particles[CTCparticles[CTC]].sv.position[2] - particles[NKCparticles[NKC]].sv.position[2]));
-              if (particleDistance < 0.2) //<0.2 is set here because the distance never gets closer than 0.1
+              minDistance = min(minDistance,particleDistance);
+                
+              if (particleDistance < 0.3) //<0.25 is set here because the distance never gets closer than 0.1
               {
-
+                
                 const hemo::Array<T, 3> &v0 = particles[NKCparticles[NKC] - (NKCparticles[NKC]) % 3].sv.position;
                 const hemo::Array<T, 3> &v1 = particles[NKCparticles[NKC] + 1 - (NKCparticles[NKC]) % 3].sv.position;
                 const hemo::Array<T, 3> &v2 = particles[NKCparticles[NKC] + 2 - (NKCparticles[NKC]) % 3].sv.position;
                 totalContactArea += 6 * ((T)1 / (T)3) * computeTriangleArea(v0, v1, v2);
-               
               }
             }
+            
           }
-          //Release cytokines if they are touching
-          if (totalContactArea > 0){
-            if(hemocell->iter % 100 == 0)
+          if(hemocell->iter%100 == 0)
+                  std::cout<<"MINIMUM DISTANCE: "<<minDistance<<std::endl;
+          // Release cytokines if they are touching
+          if (totalContactArea > 0)
+          {
+            if (hemocell->iter % 100 == 0)
               std::cout << " TOTAL CONTACT AREA: " << totalContactArea << " TOTAL SURFACE AREA: " << NKCList[j].area << " PERCENTAGE: " << totalContactArea / NKCList[j].area << std::endl;
             T concentration = 1000.0;
             Box3D NKCLocation(NKCPos[0], NKCPos[0], NKCPos[1], NKCPos[1], NKCPos[2], NKCPos[2]);
             hemocell->setConcentration(NKCLocation, concentration, plb::Array<T, 3>((T)0., (T)0., (T)0.));
           }
-          //Kill CTC if contact area above a certain percentage
-          if (totalContactArea/NKCList[j].area > 0.04)
+          // Kill CTC if contact area above a certain percentage
+          if (totalContactArea / NKCList[j].area > 0.018)
           {
             std::cout << "KILLING CTC, " << " TOTAL CONTACT AREA: " << totalContactArea << " TOTAL SURFACE AREA: " << NKCList[j].area << " PERCENTAGE: " << totalContactArea / NKCList[j].area << std::endl;
             for (HemoCellParticle &particle : particles)
@@ -1265,17 +1267,15 @@ namespace hemo
             removeParticles(1);
             lpc_up_to_date = false;
             pg_up_to_date = false;
-          }        
+          }
         }
-
-        
       }
     }
 
-    //Moves all NKCs, according to a random walk or gradient NOTE: interpolateFluidVelocity is changed to skip NKCs because their velocity will be computed here
+    // Moves all NKCs, according to a random walk or gradient NOTE: interpolateFluidVelocity is changed to skip NKCs because their velocity will be computed here
     for (int i = 0; i < NKCList.size(); i++)
     {
-      //Change the random vector every 1000 timesteps, random_vector is contained as a global var
+      // Change the random vector every 1000 timesteps, random_vector is contained as a global var
       if (hemocell->iter % 1000 == 0)
       {
         T randx = (T)rand() / (T)RAND_MAX;
@@ -1292,7 +1292,7 @@ namespace hemo
       T densityMax = 0;
       bool isGradient = false;
       hemo::Array<T, 3> directionOfGradient = {0, 0, 0};
-      //The three loops here find the approximate location of highest concentration
+      // The three loops here find the approximate location of highest concentration
       for (plint x = iX - 2; x < iX + 2; x++)
       {
         if (x >= atomicLattice->getNx() || x < 0)
@@ -1319,32 +1319,32 @@ namespace hemo
         }
       }
 
-      //Moving the actual particles:
+      // Moving the actual particles:
       hemo::Array<T, 3> velocity;
       plb::Array<T, 3> velocity_comp;
       for (HemoCellParticle &particle : particles)
       {
 
-        if (particle.sv.cellId == NKCList[i].base_cell_id && CTCDistance > 15.5)
+        if (particle.sv.cellId == NKCList[i].base_cell_id)
         {
-          //Random walk can be set to false to debug immune functions
+          // Random walk can be set to false to debug immune functions
           if (randomWalk)
           {
 
             velocity = {0.0, 0.0, 0.0};
-            //Computes the impact of fluid on each particle, and adds either a random direction or the direction of gradient
+            // Computes the impact of fluid on each particle, and adds either a random direction or the direction of gradient
             for (pluint j = 0; j < particle.kernelLocations.size(); j++)
             {
               // Direct access
               particle.kernelLocations[j]->computeVelocity(velocity_comp);
-              //velocity = velocity + (velocity_comp * particle.kernelWeights[j]);
-              if (isGradient)
+              velocity = velocity + (velocity_comp * particle.kernelWeights[j]);
+              if (isGradient && CTCDistance >  18)
               {
-                velocity = velocity + (velocity_comp * particle.kernelWeights[j]) + particle.kernelWeights[j] * 0.00001*directionOfGradient;
+                velocity = velocity + particle.kernelWeights[j] * 0.001 * directionOfGradient;
               }
-              else
+              else if (!isGradient && CTCDistance > 16)
               {
-                velocity = velocity + (velocity_comp * particle.kernelWeights[j]) + particle.kernelWeights[j] * 0.001*random_vector;
+                velocity = velocity + particle.kernelWeights[j] * 0.001 * random_vector;
               }
             }
 
@@ -1352,7 +1352,7 @@ namespace hemo
           }
           else
           {
-            particle.sv.v = 0.005 * CTCDirection; //For debugging purposes, it will have the NKCs move towards CTCs
+            particle.sv.v = 0.005 * CTCDirection; // For debugging purposes, it will have the NKCs move towards CTCs
           }
         }
       }

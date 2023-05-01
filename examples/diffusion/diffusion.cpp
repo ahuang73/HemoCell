@@ -118,15 +118,11 @@ int main(int argc, char *argv[])
     hemocell.addCellType<WbcHighOrderModel>("NKC", WBC_SPHERE);
     hemocell.setMaterialTimeScaleSeparation("NKC", (*cfg)["ibm"]["stepMaterialEvery"].read<int>());
 
-    hemocell.addCellType<WbcHighOrderModel>("CTL", WBC_SPHERE);
-    hemocell.setMaterialTimeScaleSeparation("CTL", (*cfg)["ibm"]["stepMaterialEvery"].read<int>());
-
     vector<int> outputs = {OUTPUT_POSITION, OUTPUT_TRIANGLES, OUTPUT_FORCE, OUTPUT_FORCE_VOLUME, OUTPUT_FORCE_BENDING, OUTPUT_FORCE_LINK, OUTPUT_FORCE_AREA, OUTPUT_FORCE_VISC, OUTPUT_FORCE_ADHESION, OUTPUT_FORCE_REPULSION};
     hemocell.setOutputs("RBC", outputs);
     hemocell.setOutputs("PLT", outputs);
     hemocell.setOutputs("CTC", outputs);
     hemocell.setOutputs("NKC", outputs);
-    hemocell.setOutputs("CTL", outputs);
 
     hemocell.setFluidOutputs({OUTPUT_VELOCITY, OUTPUT_DENSITY, OUTPUT_FORCE,
                               OUTPUT_SHEAR_RATE, OUTPUT_STRAIN_RATE,
@@ -180,7 +176,10 @@ int main(int argc, char *argv[])
             hlog << "(main) Stats. @ " << hemocell.iter << " (" << hemocell.iter * param::dt << " s):" << endl;
             hlog << "\t # of cells: " << CellInformationFunctionals::getTotalNumberOfCells(&hemocell);
             hlog << " | # of RBC: " << CellInformationFunctionals::getNumberOfCellsFromType(&hemocell, "RBC");
-            hlog << ", PLT: " << CellInformationFunctionals::getNumberOfCellsFromType(&hemocell, "PLT") << endl;
+            hlog << ", PLT: " << CellInformationFunctionals::getNumberOfCellsFromType(&hemocell, "PLT");
+            hlog << ", CTC: " << CellInformationFunctionals::getNumberOfCellsFromType(&hemocell, "CTC");  
+            hlog << ", NKC: " << CellInformationFunctionals::getNumberOfCellsFromType(&hemocell, "NKC") << endl;
+            
             FluidStatistics finfo = FluidInfo::calculateVelocityStatistics(&hemocell);
             T toMpS = param::dx / param::dt;
             hlog << "\t Velocity  -  max.: " << finfo.max * toMpS << " m/s, mean: " << finfo.avg * toMpS << " m/s, rel. app. viscosity: " << (param::u_lbm_max * 0.5) / finfo.avg << endl;
@@ -188,35 +187,19 @@ int main(int argc, char *argv[])
             T topN = param::df * 1.0e12;
             hlog << "\t Force  -  min.: " << pinfo.min * topN << " pN, max.: " << pinfo.max * topN << " pN (" << pinfo.max << " lf), mean: " << pinfo.avg * topN << " pN" << endl;
             hemocell.writeOutput();
+            if(CellInformationFunctionals::getNumberOfCellsFromType(&hemocell, "NKC") == 0){
+                break;
+            }
         }
-        if (hemocell.iter == 1000)
-        {
-            
-        //     map<int, CellInformation> info_per_cell;
-        //     CellInformationFunctionals::calculateCellInformation(&hemocell, info_per_cell);
-        //     HemoCellGatheringFunctional<CellInformation>::gather(info_per_cell);
-        //     for (auto cell = info_per_cell.begin(); cell != info_per_cell.end(); cell++)
-        //     {
-        //         if(cell->second.secreteCytokine)
-        //         {
-        //             hemo::Array<T,3> pos = cell->second.position;
-        //             Box3D CTLLocation(pos[0],pos[0], pos[1],pos[1], pos[2],pos[2]);
-        //             hemocell.setConcentration(source, sourceConcentration, plb::Array<T, 3>((T)0., (T)0., (T)0.));
-                    
-
-        //         }
-        //     }
-        //     // initializeAtEquilibrium(*hemocell.cellfields->sourceLattice,source,sourceConcentration, plb::Array<T, 3>((T)0., (T)0., (T)0.));
-        //     // hemocell.setConcentration(source, sourceConcentration, plb::Array<T, 3>((T)0., (T)0., (T)0.));
+        // if(hemocell.iter == 2500){
+        //     hemocell.setConcentration(source,sourceConcentration,plb::Array<double, 3>(0., 0., 0.));
         // }
-            hemocell.setConcentration(source, sourceConcentration, plb::Array<T, 3>((T)0., (T)0., (T)0.));
-        }
-        if (hemocell.iter > 400)
+        if (hemocell.iter > 100)
         {
-            // hemocell.cellfields->determineApoptosisFromConcentration();
             hemocell.cellfields->determineImmuneResponseToCTC(&hemocell);
             
         }
+        
     }
     return 0;
 }

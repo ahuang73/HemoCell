@@ -165,9 +165,9 @@ private:
   bool ppc_up_to_date = false;
   bool preinlet_ppc_up_to_date = false;
   bool pg_up_to_date = false;
-  std::map<int, int> NKCKillCount; 
   vector<vector<float>> bonds;
   vector<vector<float>> bonds2;
+  hemo::Array<T,3> random_vector=  {(T)rand() / (T)RAND_MAX, (T)rand() / (T)RAND_MAX, (T)rand() / (T)RAND_MAX};
 public:
   void invalidate_lpc() { lpc_up_to_date = false;};
   void invalidate_ppt() { ppt_up_to_date = false;};
