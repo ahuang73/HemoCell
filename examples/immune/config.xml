@@ -27,6 +27,7 @@
 </ibm>
 
 <domain>
+    <geometry> tube.stl </geometry>
     <fluidEnvelope> 2 </fluidEnvelope>
     <rhoP> 1025 </rhoP>   <!--Density of the surrounding fluid, Physical units [kg/m^3]-->
     <nuP> 1.1e-6 </nuP>   <!-- Kinematic viscosity of blood plasma, physical units [m^2/s]-->
@@ -54,7 +55,7 @@
 </domain>
 
 <sim>
-    <tmax> 10000 </tmax> <!-- total number of iterations -->
+    <tmax> 1000000 </tmax> <!-- total number of iterations -->
     <tmeas>  100 </tmeas> <!-- interval after which data is written --> 
     <tcheckpoint> 200000 </tcheckpoint> 
     <tbalance> 1000 </tbalance> <!-- interval after which balance is performed --> 
