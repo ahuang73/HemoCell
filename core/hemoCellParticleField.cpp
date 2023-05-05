@@ -1119,19 +1119,15 @@ namespace hemo
       plint y = (particle.sv.position[1] - location.y) + 0.5;
       plint z = (particle.sv.position[2] - location.z) + 0.5;
 
-      particle.sv.nearbyConcentration = sourceLattice->get(x, y, z).computeDensity();
-      total += particle.sv.nearbyConcentration;
+      T nearbyConcentration = sourceLattice->get(x, y, z).computeDensity();
+      total += nearbyConcentration;
       n++;
 
       T threshold = 1;
-      if (particle.sv.nearbyConcentration < threshold)
+      if (nearbyConcentration < threshold)
       {
-        particle.sv.cellState = APOPTOSIS;
+
         particle.tag = 1;
-      }
-      else
-      {
-        particle.sv.cellState = MOVEMENT;
       }
     }
 

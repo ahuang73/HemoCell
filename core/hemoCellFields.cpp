@@ -163,7 +163,7 @@ void HemoCellFields::createSourceField() {
           plb::defaultMultiBlockPolicy3D().getBlockCommunicator(),
           plb::defaultMultiBlockPolicy3D().getCombinedStatistics(),
           plb::defaultMultiBlockPolicy3D().getMultiCellAccess<T,SOURCE_DESCRIPTOR>(),
-          new AdvectionDiffusionBGKdynamics<T, SOURCE_DESCRIPTOR>(1e-5) //adding "withSource" breaks it, tau = 0.5 -> condensed in the middle at the start, tau = 0.001 -> same behavior as taucepac
+          new AdvectionDiffusionBGKdynamics<T, SOURCE_DESCRIPTOR>(1e-5)
           );
 
   sourceLattice->periodicity().toggle(0,lattice->periodicity().get(0));
