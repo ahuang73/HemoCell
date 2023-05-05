@@ -1277,7 +1277,7 @@ namespace hemo
         T randx = (T)rand() / (T)RAND_MAX + (T)rand() / (T)RAND_MAX - 1;
         T randy = (T)rand() / (T)RAND_MAX + (T)rand() / (T)RAND_MAX - 1;
         T randz = (T)rand() / (T)RAND_MAX + (T)rand() / (T)RAND_MAX - 1;
-        random_vector = {randx, randy, randz};
+        random_vector[i] = {randx, randy, randz};
       }
       hemo::Array<T, 3> NKCPos = NKCList[i].position;
       hemo::Array<T, 3> CTCPos = nearestCTC[i].position;
@@ -1340,7 +1340,7 @@ namespace hemo
               }
               else if (!isGradient && CTCDistance > 16)
               {
-                velocity = velocity + particle.kernelWeights[j] * 0.01 * random_vector;
+                velocity = velocity + particle.kernelWeights[j] * 0.01 * random_vector[i];
               }
             }
 
